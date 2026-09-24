@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legends-ambient-intelligence"
+version = "0.1.0"
+description = "Ambient audio capture, safe deduplicated archive, offline transcription, and knowledge distillation for the Legends ecosystem."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "Benjamin Samar / CTO Legends", email = "advisory@cto-legends.com"}]
+keywords = [
+    "ambient",
+    "audio",
+    "transcription",
+    "voice",
+    "speech",
+    "sketchpad",
+    "asr",
+    "whisper",
+    "obsidian",
+    "knowledge",
+]
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+]
+whisper = [
+    "faster-whisper>=1.0.0",
+]
+
+[project.scripts]
+legends-ambient = "legends_ambient.cli:main"
+lai = "legends_ambient.cli:main"
+
+[project.urls]
+Homepage = "https://cto-legends.com"
+Repository = "https://github.com/avalonreset/legends-ambient-intelligence"
+Issues = "https://github.com/avalonreset/legends-ambient-intelligence/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+legends_ambient = ["SKILL.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

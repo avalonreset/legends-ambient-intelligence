@@ -1,0 +1,20 @@
+# Security Policy
+
+## Supported Versions
+
+| Version | Supported |
+|---|---|
+| 0.1.x | Yes |
+
+## Reporting a Vulnerability
+
+If you discover a security issue or vulnerability in Legends Ambient Intelligence, please send an advisory email directly to:
+
+`advisory@cto-legends.com`
+
+Please include:
+- Description of the vulnerability and impact.
+- Steps to reproduce or proof-of-concept.
+- Operating system and Python version.
+
+We appreciate responsible disclosure and will respond promptly.
