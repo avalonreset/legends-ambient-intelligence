@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-import shutil
-import subprocess
 from typing import Optional
 
-from .engine import Transcriber, TranscriptionResult, TranscriptSegment, WordTiming
+from .engine import Transcriber, TranscriptionResult, TranscriptSegment
 
 
-class ParakeetTranscriber:
+class ParakeetTranscriber(Transcriber):
     """ASR backend targeting NVIDIA NeMo Parakeet models."""
 
     def __init__(
@@ -20,12 +17,12 @@ class ParakeetTranscriber:
         runner_cmd: Optional[list[str]] = None,
     ) -> None:
         self.model_name = model_name
+        # Reserved for future use. Transcription currently requires
+        # NVIDIA NeMo with a CUDA-capable GPU.
         self.runner_cmd = runner_cmd
 
     def is_available(self) -> bool:
-        """Check if NeMo or a designated runner command is available."""
-        if self.runner_cmd:
-            return shutil.which(self.runner_cmd[0]) is not None
+        """Check if NVIDIA NeMo with CUDA is available."""
         try:
             import nemo.collections.asr as nemo_asr  # noqa: F401
             import torch  # noqa: F401
@@ -36,11 +33,15 @@ class ParakeetTranscriber:
     def transcribe(self, audio_path: Path) -> TranscriptionResult:
         if not self.is_available():
             raise RuntimeError(
-                "Parakeet ASR requires NVIDIA NeMo and a CUDA-capable GPU, "
-                "or a configured custom runner command."
+                "Parakeet ASR requires NVIDIA NeMo and a CUDA-capable GPU."
             )
 
-        import nemo.collections.asr as nemo_asr  # type: ignore
+        try:
+            import nemo.collections.asr as nemo_asr  # type: ignore
+        except ImportError as exc:
+            raise RuntimeError(
+                "Parakeet ASR requires NVIDIA NeMo and a CUDA-capable GPU."
+            ) from exc
 
         model = nemo_asr.models.ASRModel.from_pretrained(model_name=self.model_name)
         transcriptions = model.transcribe([str(audio_path)])

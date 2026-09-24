@@ -105,4 +105,4 @@ def scan_audio_directory(
         if item.is_file() and item.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS:
             results.append(item.resolve())
 
-    return sorted(results, key=lambda p: p.name)
+    return sorted(results, key=lambda p: (p.name, str(p)))

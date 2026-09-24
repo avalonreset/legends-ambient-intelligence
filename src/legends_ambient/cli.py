@@ -168,6 +168,15 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
     else:
         transcriber = WhisperTranscriber(model_name=args.model)
 
+    availability = getattr(transcriber, "is_available", None)
+    if callable(availability) and not availability():
+        print(f"Error: Backend '{args.backend}' is not available in this environment.", file=sys.stderr)
+        if args.backend == "whisper":
+            print("Install faster-whisper or the whisper CLI to enable it.", file=sys.stderr)
+        elif args.backend == "parakeet":
+            print("Parakeet requires NVIDIA NeMo and a CUDA-capable GPU.", file=sys.stderr)
+        return 1
+
     files_to_transcribe: list[Path] = []
     if target.is_file():
         files_to_transcribe = [target]
@@ -185,7 +194,11 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
     results: list[TranscriptionResult] = []
     for f in files_to_transcribe:
         print(f"  -> {f.name}...")
-        res = transcriber.transcribe(f)
+        try:
+            res = transcriber.transcribe(f)
+        except Exception as e:
+            print(f"Error: Transcription failed for {f.name}: {e}", file=sys.stderr)
+            return 1
         results.append(res)
         write_transcript_artifacts(res, output_dir)
 
@@ -238,13 +251,30 @@ def cmd_distill(args: argparse.Namespace) -> int:
     language = "en"
 
     if transcript_path.suffix.lower() == ".json":
-        data = json.loads(transcript_path.read_text(encoding="utf-8"))
+        try:
+            data = json.loads(transcript_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+            print(f"Error: Cannot parse transcript JSON {transcript_path}: {e}", file=sys.stderr)
+            return 1
+        if not isinstance(data, dict):
+            print(f"Error: Transcript JSON must be an object: {transcript_path}", file=sys.stderr)
+            return 1
         text = data.get("text", "")
-        duration = float(data.get("duration_seconds", 0.0))
+        if not isinstance(text, str):
+            text = str(text)
+        try:
+            duration = float(data.get("duration_seconds", 0.0))
+        except (TypeError, ValueError):
+            print(f"Error: Invalid duration_seconds in {transcript_path}.", file=sys.stderr)
+            return 1
         model = data.get("model", "unknown")
         language = data.get("language", "en")
     else:
-        text = transcript_path.read_text(encoding="utf-8")
+        try:
+            text = transcript_path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError) as e:
+            print(f"Error: Cannot read transcript file {transcript_path}: {e}", file=sys.stderr)
+            return 1
 
     candidate = extract_distilled_candidates(text)
     result = TranscriptionResult(
@@ -256,12 +286,16 @@ def cmd_distill(args: argparse.Namespace) -> int:
         model=model,
     )
 
-    content, written = generate_obsidian_note(
-        candidate=candidate,
-        result=result,
-        vault_path=args.vault,
-        note_slug=args.slug,
-    )
+    try:
+        content, written = generate_obsidian_note(
+            candidate=candidate,
+            result=result,
+            vault_path=args.vault,
+            note_slug=args.slug,
+        )
+    except (OSError, ValueError) as e:
+        print(f"Error: Cannot write Obsidian note: {e}", file=sys.stderr)
+        return 1
 
     if written:
         print(f"Exported distilled note to: {written}")

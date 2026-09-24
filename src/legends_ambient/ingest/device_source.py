@@ -36,6 +36,8 @@ class DeviceSource:
 
 def find_mounted_device(label: str = "KT5000") -> Optional[Path]:
     """Find the mount root of a USB volume matching the given label."""
+    if not label or not label.strip():
+        return None
     if sys.platform == "win32":
         cmd = [
             "powershell",
@@ -56,10 +58,19 @@ def find_mounted_device(label: str = "KT5000") -> Optional[Path]:
             return vol
     elif sys.platform.startswith("linux"):
         for base in (Path("/media"), Path("/mnt")):
-            if base.is_dir():
-                matches = list(base.glob(f"**/{label}"))
-                if matches and matches[0].is_dir():
-                    return matches[0]
+            if not base.is_dir():
+                continue
+            direct = base / label
+            if direct.is_dir():
+                return direct
+            try:
+                children = [c for c in base.iterdir() if c.is_dir()]
+            except OSError:
+                continue
+            for child in children:
+                candidate = child / label
+                if candidate.is_dir():
+                    return candidate
 
     return None
 

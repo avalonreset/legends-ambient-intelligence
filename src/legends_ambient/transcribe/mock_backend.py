@@ -6,7 +6,7 @@ from pathlib import Path
 from .engine import Transcriber, TranscriptionResult, TranscriptSegment, WordTiming
 
 
-class MockTranscriber:
+class MockTranscriber(Transcriber):
     """Mock ASR backend producing deterministic transcript artifacts."""
 
     def __init__(self, sample_text: str = "This is an ambient voice sketchpad recording testing prompt continuation.") -> None:

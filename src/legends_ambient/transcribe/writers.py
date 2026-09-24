@@ -9,21 +9,24 @@ from typing import Sequence
 from .engine import TranscriptionResult
 
 
+def _split_timestamp(seconds: float) -> tuple[int, int, int, int]:
+    """Split seconds into (hours, minutes, seconds, millis) with rounding carry."""
+    total_ms = int(round(max(0.0, seconds) * 1000))
+    hrs, rem = divmod(total_ms, 3600000)
+    mins, rem = divmod(rem, 60000)
+    secs, millis = divmod(rem, 1000)
+    return hrs, mins, secs, millis
+
+
 def format_timestamp_srt(seconds: float) -> str:
     """Format seconds into SRT timestamp (HH:MM:SS,mmm)."""
-    hrs = int(seconds // 3600)
-    mins = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    millis = int(round((seconds - int(seconds)) * 1000))
+    hrs, mins, secs, millis = _split_timestamp(seconds)
     return f"{hrs:02d}:{mins:02d}:{secs:02d},{millis:03d}"
 
 
 def format_timestamp_vtt(seconds: float) -> str:
     """Format seconds into WebVTT timestamp (HH:MM:SS.mmm)."""
-    hrs = int(seconds // 3600)
-    mins = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    millis = int(round((seconds - int(seconds)) * 1000))
+    hrs, mins, secs, millis = _split_timestamp(seconds)
     return f"{hrs:02d}:{mins:02d}:{secs:02d}.{millis:03d}"
 
 

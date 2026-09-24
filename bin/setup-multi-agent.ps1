@@ -56,14 +56,14 @@ $homes = @(
   @{ Name = 'gemini'; Path = (Join-Path $env:USERPROFILE '.gemini\skills') }
 )
 
-# Linux service homes when present
-foreach ($extra in @(
-  '/var/lib/omnigent/.grok/skills',
-  '/var/lib/omnigent/.codex/skills',
-  '/var/lib/omnigent/.claude/skills'
-)) {
-  if (Test-Path $extra) {
-    $homes += @{ Name = (Split-Path $extra -Parent | Split-Path -Leaf); Path = $extra }
+# Optional extra skill homes via LEGENDS_EXTRA_SKILL_DIRS (semicolon separated)
+if ($env:LEGENDS_EXTRA_SKILL_DIRS) {
+  foreach ($extra in ($env:LEGENDS_EXTRA_SKILL_DIRS -split ';')) {
+    $trimmed = $extra.Trim()
+    if ($trimmed -and (Test-Path $trimmed)) {
+      $label = Split-Path $trimmed -Leaf
+      $homes += @{ Name = $label; Path = $trimmed }
+    }
   }
 }
 

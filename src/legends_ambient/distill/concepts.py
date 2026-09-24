@@ -57,11 +57,8 @@ def extract_distilled_candidates(text: str) -> DistilledCandidate:
         w for w, _ in sorted(counts.items(), key=lambda item: -item[1])[:5]
     ]
 
-    summary = (
-        sentences[0].strip()
-        if sentences
-        else "Ambient capture recording."
-    )
+    first_sentence = sentences[0].strip() if sentences else ""
+    summary = first_sentence or "Ambient capture recording."
 
     return DistilledCandidate(
         summary=summary,

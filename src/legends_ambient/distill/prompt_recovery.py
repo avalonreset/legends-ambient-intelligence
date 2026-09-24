@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 import re
 from typing import Optional, Sequence
 
-from ..ingest.sources import AudioFile, parse_recording_timestamp
+from ..ingest.sources import AudioFile
 
 CONTINUATION_PATTERN = re.compile(
     r"^(and|but|because|then|also|which|that|or|nor|yet)\b",
@@ -60,13 +59,17 @@ def analyze_prompt_recovery(
     boundary_gap_seconds = None
 
     if predecessor and latest.recording_start_iso:
-        latest_start = datetime.fromisoformat(latest.recording_start_iso)
-        pred_mtime = datetime.fromisoformat(predecessor.last_modified_iso)
-        latest_ts = latest_start.replace(tzinfo=timezone.utc).timestamp() if latest_start.tzinfo is None else latest_start.timestamp()
-        pred_ts = pred_mtime.replace(tzinfo=timezone.utc).timestamp() if pred_mtime.tzinfo is None else pred_mtime.timestamp()
-        gap = abs(latest_ts - pred_ts)
-        boundary_gap_seconds = round(gap, 3)
-        rollover_detected = boundary_gap_seconds <= rollover_tolerance_seconds
+        try:
+            latest_start = datetime.fromisoformat(latest.recording_start_iso)
+            pred_mtime = datetime.fromisoformat(predecessor.last_modified_iso)
+            latest_ts = latest_start.replace(tzinfo=timezone.utc).timestamp() if latest_start.tzinfo is None else latest_start.timestamp()
+            pred_ts = pred_mtime.replace(tzinfo=timezone.utc).timestamp() if pred_mtime.tzinfo is None else pred_mtime.timestamp()
+            gap = abs(latest_ts - pred_ts)
+            boundary_gap_seconds = round(gap, 3)
+            rollover_detected = boundary_gap_seconds <= rollover_tolerance_seconds
+        except (ValueError, TypeError):
+            boundary_gap_seconds = None
+            rollover_detected = False
 
     starts_mid_thought = False
     if latest_transcript_text:
@@ -75,6 +78,9 @@ def analyze_prompt_recovery(
 
     include_predecessor = predecessor is not None and (rollover_detected or starts_mid_thought)
 
+    safe_latest_tail = max(0, latest_tail_minutes)
+    safe_predecessor_tail = max(0, predecessor_tail_minutes)
+
     clip_plan: list[RecoveryClip] = []
     if include_predecessor and predecessor:
         clip_plan.append(
@@ -82,8 +88,8 @@ def analyze_prompt_recovery(
                 order=1,
                 role="predecessor-tail",
                 source_path=str(predecessor.path),
-                tail_seconds=predecessor_tail_minutes * 60,
-                output_base=f"previous-tail-{predecessor_tail_minutes}min",
+                tail_seconds=safe_predecessor_tail * 60,
+                output_base=f"previous-tail-{safe_predecessor_tail}min",
             )
         )
 
@@ -92,8 +98,8 @@ def analyze_prompt_recovery(
             order=len(clip_plan) + 1,
             role="latest-tail",
             source_path=str(latest.path),
-            tail_seconds=latest_tail_minutes * 60,
-            output_base=f"tail-{latest_tail_minutes}min",
+            tail_seconds=safe_latest_tail * 60,
+            output_base=f"tail-{safe_latest_tail}min",
         )
     )
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -103,41 +103,57 @@ class Archiver:
         manifest_recordings: list[dict] = []
         checksum_lines: list[str] = []
         total_bytes = 0
-
-        for audio in new_files:
-            dest_file = raw_dir / audio.filename
-            shutil.copy2(audio.path, dest_file)
-            verified_hash = compute_file_sha256(dest_file)
-            if verified_hash != audio.sha256:
-                raise ValueError(
-                    f"Integrity check failed copying {audio.filename}: expected {audio.sha256}, got {verified_hash}"
-                )
-
-            total_bytes += audio.size_bytes
-            manifest_recordings.append({
-                "filename": audio.filename,
-                "sha256": audio.sha256,
-                "size_bytes": audio.size_bytes,
-                "last_modified": audio.last_modified_iso,
-                "recording_start": audio.recording_start_iso,
-                "relative_path": f"raw/{audio.filename}",
-            })
-            checksum_lines.append(f"{audio.sha256}  raw/{audio.filename}")
-
-        manifest = {
-            "version": "1.0.0",
-            "created_at": now.isoformat(),
-            "slug": slug,
-            "recordings_count": len(manifest_recordings),
-            "total_bytes": total_bytes,
-            "recordings": manifest_recordings,
-        }
-
+        used_names: set[str] = set()
         manifest_path = ingest_dir / "manifest.json"
-        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-
         sums_path = ingest_dir / "SHA256SUMS.txt"
-        sums_path.write_text("\n".join(checksum_lines) + "\n", encoding="utf-8")
+
+        try:
+            for audio in new_files:
+                dest_name = audio.filename
+                if dest_name in used_names:
+                    stem = Path(audio.filename).stem
+                    suffix = Path(audio.filename).suffix
+                    short_hash = audio.sha256[:8].lower()
+                    dest_name = f"{stem}-{short_hash}{suffix}"
+                    dup_counter = 1
+                    while dest_name in used_names:
+                        dup_counter += 1
+                        dest_name = f"{stem}-{short_hash}-{dup_counter}{suffix}"
+                used_names.add(dest_name)
+
+                dest_file = raw_dir / dest_name
+                shutil.copy2(audio.path, dest_file)
+                verified_hash = compute_file_sha256(dest_file)
+                if verified_hash != audio.sha256:
+                    raise ValueError(
+                        f"Integrity check failed copying {audio.filename}: expected {audio.sha256}, got {verified_hash}"
+                    )
+
+                total_bytes += audio.size_bytes
+                manifest_recordings.append({
+                    "filename": audio.filename,
+                    "sha256": audio.sha256,
+                    "size_bytes": audio.size_bytes,
+                    "last_modified": audio.last_modified_iso,
+                    "recording_start": audio.recording_start_iso,
+                    "relative_path": f"raw/{dest_name}",
+                })
+                checksum_lines.append(f"{audio.sha256}  raw/{dest_name}")
+
+            manifest = {
+                "version": "1.0.0",
+                "created_at": now.isoformat(),
+                "slug": slug,
+                "recordings_count": len(manifest_recordings),
+                "total_bytes": total_bytes,
+                "recordings": manifest_recordings,
+            }
+
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+            sums_path.write_text("\n".join(checksum_lines) + "\n", encoding="utf-8")
+        except Exception:
+            shutil.rmtree(ingest_dir, ignore_errors=True)
+            raise
 
         return IngestReceipt(
             status="archived",

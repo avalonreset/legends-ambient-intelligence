@@ -6,12 +6,11 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-from typing import Optional
 
 from .engine import Transcriber, TranscriptionResult, TranscriptSegment, WordTiming
 
 
-class WhisperTranscriber:
+class WhisperTranscriber(Transcriber):
     """ASR backend using faster-whisper or local whisper CLI."""
 
     def __init__(

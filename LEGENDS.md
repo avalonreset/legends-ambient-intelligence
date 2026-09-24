@@ -2,7 +2,6 @@
 
 **Status:** public open-source candidate  
 **Version:** `0.1.0`  
-**Disk home:** `E:\legends-ambient-intelligence`  
 **Skill id:** `legends-ambient-intelligence`  
 **Product brand:** Legends Ambient Intelligence (`legends-ambient-intelligence`)  
 
