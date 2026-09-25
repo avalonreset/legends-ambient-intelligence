@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="legends-ambient-intelligence">
+  <rect width="1200" height="400" fill="#000000"/>
+  <g fill="none" stroke="#ff0000" stroke-width="3" opacity="0.9">
+    <path d="M120 200 h120 l20 -60 l24 120 l20 -80 l16 20 h120" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="880" cy="200" r="70" opacity="0.55"/>
+    <circle cx="880" cy="200" r="46" opacity="0.8"/>
+    <circle cx="880" cy="200" r="22" fill="#ff0000" stroke="none" opacity="0.9"/>
+  </g>
+  <text x="120" y="300" font-family="monospace" font-size="44" fill="#ffffff">legends-ambient-intelligence</text>
+  <text x="120" y="340" font-family="monospace" font-size="22" fill="#999999">passive audio to source-cited knowledge</text>
+</svg>

@@ -17,4 +17,4 @@ Please include:
 - Steps to reproduce or proof-of-concept.
 - Operating system and Python version.
 
-We appreciate responsible disclosure and will respond promptly.
+We appreciate responsible disclosure. We aim to acknowledge reports within 2 business days and share a remediation timeline within 5 business days.

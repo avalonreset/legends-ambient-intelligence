@@ -23,7 +23,7 @@ Ambient intelligence turns the surrounding physical and digital environment into
 |---|---|---|
 | Foreground Voice | `hyperyap` | Active keyboard-focused speech-to-text dictation |
 | Background Audio | `legends-ambient-intelligence` | Passive capture, deduplication, batch ASR, prompt recovery |
-| Knowledge Sink | `legends-obsidian` | Source-cited markdown vault memory and research evidence |
+| Knowledge Sink | `legends-empire` | Source-cited markdown vault memory and research evidence |
 | Front Door | `cto-legends` | CLI catalog, module environment isolation, and skill routing |
 
 ## Operational readiness

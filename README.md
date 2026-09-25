@@ -1,10 +1,12 @@
-# legends-ambient-intelligence
+# ![legends-ambient-intelligence](assets/banner.svg)
 
 **Ambient audio capture, deduplicated archiving, offline transcription, and knowledge distillation for the Legends ecosystem.**
 
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![ecosystem: cto-legends](https://img.shields.io/badge/ecosystem-cto--legends-black.svg)](https://cto-legends.com)
+[![release](https://img.shields.io/github/v/release/avalonreset/legends-ambient-intelligence?label=release&style=flat-square&labelColor=000000&color=ff0000)](https://github.com/avalonreset/legends-ambient-intelligence/releases/latest)
+[![checks](https://img.shields.io/github/actions/workflow/status/avalonreset/legends-ambient-intelligence/ci.yml?branch=main&label=checks&style=flat-square&labelColor=000000)](https://github.com/avalonreset/legends-ambient-intelligence/actions/workflows/ci.yml)
+[![license](https://img.shields.io/github/license/avalonreset/legends-ambient-intelligence?label=license&style=flat-square&labelColor=000000&color=666666)](LICENSE)
+[![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/)
+[![ecosystem: cto-legends](https://img.shields.io/badge/ecosystem-cto--legends-black.svg?style=flat-square)](https://cto-legends.com)
 
 Turn continuous background recording and voice sketchpads into structured, source-cited knowledge notes.
 
@@ -32,12 +34,12 @@ Most voice tools focus on real-time typing at your keyboard. **Legends Ambient I
                                         |
                                         v (deduplicate + transcribe + distill)
 [ Knowledge Sink ]
-  +-- Markdown Vault Storage ------> legends-obsidian (source-cited memory)
+  +-- Markdown Vault Storage ------> legends-empire (source-cited memory)
 ```
 
 - **hyperyap:** Real-time voice typing and dictation into active applications.
 - **legends-ambient-intelligence:** Passive ambient recording, background batch ingestion, and concept distillation.
-- **legends-obsidian:** Structured vault storage, research citations, and agent memory.
+- **legends-empire:** Structured vault storage, research citations, and agent memory.
 - **cto-legends:** Ecosystem router and manager to discover and install all tools.
 
 ---
