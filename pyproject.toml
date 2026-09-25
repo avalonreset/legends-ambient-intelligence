@@ -44,9 +44,6 @@ Issues = "https://github.com/avalonreset/legends-ambient-intelligence/issues"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-legends_ambient = ["SKILL.md"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

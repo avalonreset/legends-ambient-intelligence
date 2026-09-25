@@ -117,21 +117,11 @@ legends-ambient distill path/to/transcript.json --vault ~/Documents/ObsidianVaul
 
 ---
 
-## Agent skill integration
+## Agent setup (via `cto-legends`)
 
-A portable agent skill is included in `skills/legends-ambient-intelligence/SKILL.md`.
+Part of the [CTO Legends](https://github.com/avalonreset/cto-legends) ecosystem. `cto-legends` is the only registered skill; this repo vendors a pinned copy at `skills/cto-legends/SKILL.md`.
 
-To register the skill for your coding agent (Codex, Grok, Gemini, Claude, Cursor):
-
-```sh
-# If using cto-legends:
-cto-legends install legends-ambient-intelligence --apply
-
-# Or copy directly to your agent's skills directory:
-cp -r skills/legends-ambient-intelligence ~/.agents/skills/
-```
-
-Your agent will understand how to run diagnostics, ingest recordings, transcribe offline, and extract notes into your vault.
+Install with `cto-legends install legends-ambient-intelligence`, then follow the module recipe the router loads. Do not register this module as its own skill.
 
 ---
 
