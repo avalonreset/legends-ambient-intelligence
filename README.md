@@ -39,8 +39,8 @@ Most voice tools focus on real-time typing at your keyboard. **Legends Ambient I
 
 - **hyperyap:** Real-time voice typing and dictation into active applications.
 - **legends-ambient-intelligence:** Passive ambient recording, background batch ingestion, and concept distillation.
-- **legends-empire:** Structured vault storage, research citations, and agent memory.
-- **cto-legends:** Ecosystem router and manager to discover and install all tools.
+- **[`legends-empire`](https://github.com/avalonreset/legends-empire):** Structured vault storage, research citations, and agent memory.
+- **[`cto-legends`](https://github.com/avalonreset/cto-legends):** Ecosystem router and manager to discover and install all tools.
 
 ---
 
