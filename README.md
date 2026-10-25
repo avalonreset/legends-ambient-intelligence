@@ -1,6 +1,4 @@
-# ![legends-ambient-intelligence](assets/banner.svg)
-
-**Ambient audio capture, deduplicated archiving, offline transcription, and knowledge distillation for the Legends ecosystem.**
+# ![legends-ambient-intelligence](assets/banner.webp)
 
 [![release](https://img.shields.io/github/v/release/avalonreset/legends-ambient-intelligence?label=release&style=flat-square&labelColor=000000&color=ff0000)](https://github.com/avalonreset/legends-ambient-intelligence/releases/latest)
 [![checks](https://img.shields.io/github/actions/workflow/status/avalonreset/legends-ambient-intelligence/ci.yml?branch=main&label=checks&style=flat-square&labelColor=000000)](https://github.com/avalonreset/legends-ambient-intelligence/actions/workflows/ci.yml)
@@ -8,7 +6,7 @@
 [![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![ecosystem: cto-legends](https://img.shields.io/badge/ecosystem-cto--legends-black.svg?style=flat-square)](https://cto-legends.com)
 
-Turn continuous background recording and voice sketchpads into structured, source-cited knowledge notes.
+**Ambient audio capture, deduplicated USB voice recorder archiving, offline Whisper and Parakeet ASR transcription, and Obsidian vault distillation for the Legends ecosystem.**
 
 ---
 
@@ -25,7 +23,7 @@ Most voice tools focus on real-time typing at your keyboard. **Legends Ambient I
 
 ---
 
-## Where it fits in the Legends ecosystem
+## Architecture and where it fits in the Legends ecosystem
 
 ```text
 [ Voice Input ]
@@ -68,7 +66,7 @@ legends-ambient doctor
 
 ---
 
-## Quickstart
+## Quick start
 
 ### 1. Ingest audio files from a local mic folder
 
@@ -117,6 +115,16 @@ legends-ambient distill path/to/transcript.json --vault ~/Documents/ObsidianVaul
 
 ---
 
+## FAQ
+
+**How is `legends-ambient-intelligence` different from `legends-hyperyap`?**
+[`legends-hyperyap`](https://github.com/avalonreset/legends-hyperyap) handles live push-to-talk dictation into your active cursor. `legends-ambient-intelligence` handles passive recordings from USB dictaphones or local folders: SHA-256 deduplicated ingestion, offline batch transcription, split-file prompt recovery, and Markdown distillation into [`legends-empire`](https://github.com/avalonreset/legends-empire).
+
+**Does ingestion delete recordings from my USB voice recorder?**
+No. Ingestion is non-destructive: it verifies SHA-256 hashes against historical manifests, copies new audio into dated archive folders, and optionally dismounts the USB volume cleanly.
+
+---
+
 ## Agent setup (via `cto-legends`)
 
 Part of the [CTO Legends](https://github.com/avalonreset/cto-legends) ecosystem. `cto-legends` is the only registered skill; this repo vendors a pinned copy at `skills/cto-legends/SKILL.md`.
@@ -124,6 +132,10 @@ Part of the [CTO Legends](https://github.com/avalonreset/cto-legends) ecosystem.
 Install with `cto-legends install legends-ambient-intelligence`, then follow the module recipe the router loads. Do not register this module as its own skill.
 
 ---
+
+## Contributing and support
+
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md), [SECURITY.md](SECURITY.md), and [docs/SEARCH-STRATEGY.md](docs/SEARCH-STRATEGY.md).
 
 ## License
 

@@ -1,0 +1,36 @@
+{
+  "template": "legends-type-v1",
+  "title": "legends-ambient-intelligence",
+  "subtitle_lines": [
+    "offline voice memo transcription, usb recorder",
+    "ingest, and markdown vault distillation"
+  ],
+  "size": [
+    4096,
+    1024
+  ],
+  "text_bounds": [
+    [
+      192,
+      212,
+      3244,
+      385
+    ],
+    [
+      192,
+      534,
+      3136,
+      635
+    ],
+    [
+      192,
+      666,
+      2688,
+      768
+    ]
+  ],
+  "font_sha256": "3769f0f76477a7d9e2e6cb40422dedacb56c9ab1a6f7beee89b2b9ba6b8091ee",
+  "banner_sha256": "504e5f28dbb74dc55d02f4e7819c229ed1d41a4da5e0cb66459efa97a62fe974",
+  "output_dir": "C:\\Users\\rccol\\AppData\\Local\\Temp\\legends-banner-renders\\legends-ambient-intelligence",
+  "published": false
+}

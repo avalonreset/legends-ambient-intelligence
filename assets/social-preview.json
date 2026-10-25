@@ -1,0 +1,40 @@
+{
+  "template": "legends-social-v1",
+  "title": "legends-ambient-intelligence",
+  "subtitle": "offline voice memo transcription, recorder ingest, and markdown vault distillation",
+  "size": [
+    1280,
+    640
+  ],
+  "title_px": 64,
+  "subtitle_px": 36,
+  "safe_margin_px": 80,
+  "lines": [
+    "offline voice memo transcription, recorder",
+    "ingest, and markdown vault distillation"
+  ],
+  "text_bounds": [
+    [
+      80,
+      176,
+      1200,
+      239
+    ],
+    [
+      80,
+      324,
+      1004,
+      360
+    ],
+    [
+      80,
+      372,
+      938,
+      410
+    ]
+  ],
+  "font_sha256": "3769f0f76477a7d9e2e6cb40422dedacb56c9ab1a6f7beee89b2b9ba6b8091ee",
+  "image_sha256": "81deb4a98916c8536c774f661401c426098f635c04ed76e388d12caa6e5d9254",
+  "bytes": 25138,
+  "upload_status": "not_attempted"
+}
