@@ -29,7 +29,7 @@ class TestDoctor(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             results = Doctor(archive_root=Path(tmp)).run_all()
             py = next(r for r in results if r.name == "python")
-            if sys.version_info >= (3, 10):
+            if sys.version_info >= (3, 11):
                 self.assertEqual(py.status, "OK")
             else:
                 self.assertEqual(py.status, "FAIL")

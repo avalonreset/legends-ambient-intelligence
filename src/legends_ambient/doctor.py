@@ -31,10 +31,10 @@ class Doctor:
 
         # 1. Python version
         py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-        if sys.version_info >= (3, 10):
+        if sys.version_info >= (3, 11):
             results.append(CheckResult("python", "OK", f"Python {py_ver} (supported)"))
         else:
-            results.append(CheckResult("python", "FAIL", f"Python {py_ver} (requires 3.10+)"))
+            results.append(CheckResult("python", "FAIL", f"Python {py_ver} (requires 3.11+)"))
 
         # 2. Archive root directory
         try:

@@ -4,6 +4,12 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.1] - 2026-10-29
+
+### Changed
+- Raise minimum supported Python runtime to Python 3.11 (`requires-python = ">=3.11"`) across package metadata, offline `doctor` checks, and CI.
+- Harden GitHub Actions workflows with 40-character commit SHA action pins, explicit `contents: read` permissions, and `pip>=26.2.2` before package installation.
+
 ## [0.1.0] - 2026-09-25 - Router-native reset
 
 ### Changed

@@ -17,6 +17,6 @@ These rules apply to any agent working inside the `legends-ambient-intelligence`
 
 ## 3. Architecture and Packaging
 
-- The core package (`src/legends_ambient/`) relies on Python 3.10+ standard library for discovery, hashing, archiving, prompt recovery, and Obsidian formatting.
+- The core package (`src/legends_ambient/`) relies on Python 3.11+ standard library for discovery, hashing, archiving, prompt recovery, and Obsidian formatting.
 - ASR engines are pluggable. Whisper (`faster-whisper` or CLI) is the portable standard; NeMo Parakeet is supported for high-throughput GPU systems; `MockTranscriber` is provided for offline testing.
 - Unit tests in `tests/` must execute quickly and pass completely offline without external network calls, GPU requirements, or connected hardware.

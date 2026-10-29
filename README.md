@@ -3,7 +3,7 @@
 [![release](https://img.shields.io/github/v/release/avalonreset/legends-ambient-intelligence?label=release&style=flat-square&labelColor=000000&color=ff0000)](https://github.com/avalonreset/legends-ambient-intelligence/releases/latest)
 [![checks](https://img.shields.io/github/actions/workflow/status/avalonreset/legends-ambient-intelligence/ci.yml?branch=main&label=checks&style=flat-square&labelColor=000000)](https://github.com/avalonreset/legends-ambient-intelligence/actions/workflows/ci.yml)
 [![license](https://img.shields.io/github/license/avalonreset/legends-ambient-intelligence?label=license&style=flat-square&labelColor=000000&color=666666)](LICENSE)
-[![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg?style=flat-square)](https://www.python.org/)
+[![python: 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg?style=flat-square)](https://www.python.org/)
 [![ecosystem: cto-legends](https://img.shields.io/badge/ecosystem-cto--legends-black.svg?style=flat-square)](https://cto-legends.com)
 
 **Ambient audio capture, deduplicated USB voice recorder archiving, offline Whisper and Parakeet ASR transcription, and Obsidian vault distillation for the Legends ecosystem.**
@@ -44,7 +44,7 @@ Most voice tools focus on real-time typing at your keyboard. **Legends Ambient I
 
 ## Installation
 
-Requires Python 3.10 or newer. Standard audio tools (`ffmpeg` and `ffprobe`) should be installed on your system PATH.
+Requires Python 3.11 or newer. Standard audio tools (`ffmpeg` and `ffprobe`) should be installed on your system PATH.
 
 ```sh
 # Clone repository
