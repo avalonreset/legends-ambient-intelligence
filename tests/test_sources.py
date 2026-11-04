@@ -5,7 +5,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from legends_ambient.ingest.device_source import DeviceSource, find_mounted_device
+from legends_ambient.ingest.device_source import (
+    DeviceSource,
+    _win32_eject_volume,
+    _win32_find_mounted_device,
+    find_mounted_device,
+)
 from legends_ambient.ingest.local_source import LocalDirectorySource
 from legends_ambient.ingest.sources import (
     AudioFile,
@@ -182,6 +187,45 @@ class TestSourcesEdge(unittest.TestCase):
 
     def test_find_mounted_device_unlikely_label(self):
         self.assertIsNone(find_mounted_device("NO_SUCH_VOLUME_XYZ_123"))
+
+    def test_win32_find_mounted_device_mocked_kernel32(self):
+        from unittest import mock
+
+        fake_kernel32 = mock.MagicMock()
+        # Drives C (bit 2) and E (bit 4)
+        fake_kernel32.GetLogicalDrives.return_value = (1 << 2) | (1 << 4)
+
+        def fake_get_vol_info(root_ptr, vol_buf, buf_len, *args):
+            root = root_ptr.value
+            if root == "C:\\":
+                vol_buf.value = "OS"
+                return 1
+            if root == "E:\\":
+                vol_buf.value = "KT5000"
+                return 1
+            return 0
+
+        fake_kernel32.GetVolumeInformationW.side_effect = fake_get_vol_info
+        fake_windll = mock.MagicMock(kernel32=fake_kernel32)
+
+        with mock.patch("legends_ambient.ingest.device_source.ctypes.windll", fake_windll, create=True):
+            self.assertEqual(_win32_find_mounted_device("kt5000"), Path("E:\\"))
+            self.assertIsNone(_win32_find_mounted_device("MISSING_VOL"))
+
+    def test_win32_eject_volume_mocked_kernel32(self):
+        from unittest import mock
+
+        self.assertFalse(_win32_eject_volume(Path("not-a-drive")))
+
+        fake_kernel32 = mock.MagicMock()
+        fake_kernel32.CreateFileW.return_value = 42
+        fake_kernel32.DeviceIoControl.return_value = 1
+        fake_windll = mock.MagicMock(kernel32=fake_kernel32)
+
+        with mock.patch("legends_ambient.ingest.device_source.ctypes.windll", fake_windll, create=True):
+            self.assertTrue(_win32_eject_volume(Path("E:\\")))
+            self.assertEqual(fake_kernel32.DeviceIoControl.call_count, 4)
+            fake_kernel32.CloseHandle.assert_called_once()
 
 
 if __name__ == "__main__":

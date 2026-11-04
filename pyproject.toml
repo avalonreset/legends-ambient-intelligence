@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legends-ambient-intelligence"
-version = "0.1.1"
+version = "0.1.2"
 description = "Ambient audio capture, safe deduplicated archive, offline transcription, and knowledge distillation for the Legends ecosystem."
 readme = "README.md"
 requires-python = ">=3.11"

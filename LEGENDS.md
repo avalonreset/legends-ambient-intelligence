@@ -1,7 +1,7 @@
 # Legends Ambient Intelligence
 
 **Status:** public open-source candidate  
-**Version:** `0.1.1`  
+**Version:** `0.1.2`  
 **Product brand:** Legends Ambient Intelligence (`legends-ambient-intelligence`)  
 
 ## Philosophy

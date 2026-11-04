@@ -4,6 +4,11 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.2] - 2026-11-04
+
+### Changed
+- Replace Windows `powershell` / WMI `Win32_Volume` subprocess calls in `find_mounted_device()` and `eject_volume()` with direct Win32 `kernel32` APIs (`GetLogicalDrives`, `GetVolumeInformationW`, and `DeviceIoControl` `FSCTL_LOCK_VOLUME` / `FSCTL_DISMOUNT_VOLUME` / `IOCTL_STORAGE_EJECT_MEDIA`) via `ctypes`, eliminating PowerShell/WMI process spawning and fixing volume dismount exit-status checking.
+
 ## [0.1.1] - 2026-10-29
 
 ### Changed
