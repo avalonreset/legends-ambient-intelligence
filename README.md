@@ -140,3 +140,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md), [SECURITY.md](
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+**Specification & benchmarks on cto-legends.com:**
+- **Module specification & architecture matrix:** [cto-legends.com/modules/legends-ambient-intelligence](https://cto-legends.com/modules/legends-ambient-intelligence)
+- **Related engineering dispatches:** [Obsidian Second Brain: Markdown Knowledge Base Guide](https://cto-legends.com/blog?post=obsidian-second-brain-markdown-knowledge-base) · [How to Build AI Agents: Production CLI & MCP Routing](https://cto-legends.com/blog?post=how-to-build-ai-agents-cli-mcp-routing)
+- **Ecosystem hub:** [cto-legends.com/home](https://cto-legends.com/home)
