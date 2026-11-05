@@ -26,3 +26,5 @@ jobs:
       - run: python -m unittest discover -s tests
       - run: legends-ambient --help
       - run: legends-ambient doctor
+      - run: legends-ambient doctor --offline --json
+      - run: python scripts/check_release.py

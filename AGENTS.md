@@ -20,4 +20,9 @@ These rules apply to any agent working inside the `legends-ambient-intelligence`
 - The core package (`src/legends_ambient/`) relies on Python 3.11+ standard library for discovery, hashing, archiving, prompt recovery, and Obsidian formatting.
 - ASR engines are pluggable. Whisper (`faster-whisper` or CLI) is the portable standard; NeMo Parakeet is supported for high-throughput GPU systems; `MockTranscriber` is provided for offline testing.
 - Unit tests in `tests/` must execute quickly and pass completely offline without external network calls, GPU requirements, or connected hardware.
-- Endpoint security (EDR) rule: never spawn `powershell` or WMI (`Win32_Volume`) subprocesses for volume discovery or USB dismounting on Windows; always use the native `ctypes.windll.kernel32` helpers in `src/legends_ambient/ingest/device_source.py`.
+## 4. EDR and Security Guardrails
+
+- Never spawn background shells, hidden console windows, `powershell.exe`, `wmic.exe`, or execution-policy bypass shell wrappers; always use the native Win32 `kernel32` volume helpers in `src/legends_ambient/ingest/device_source.py`.
+- Never bundle `.ps1`, `.bat`, `.cmd`, `.vbs`, or `.ahk` files in the repository or release artifacts.
+- Never read local browser profile databases, DPAPI stores, or third-party credential stores.
+- Keep `skills/cto-legends/SKILL.md` as the only `SKILL.md` file in the repository; the operator recipe lives at [docs/AGENT-RECIPE.md](docs/AGENT-RECIPE.md).

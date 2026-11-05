@@ -135,7 +135,7 @@ Install with `cto-legends install legends-ambient-intelligence`, then follow the
 
 ## Contributing and support
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md), [SECURITY.md](SECURITY.md), and [docs/SEARCH-STRATEGY.md](docs/SEARCH-STRATEGY.md).
+See [docs/AGENT-RECIPE.md](docs/AGENT-RECIPE.md), [CONTRIBUTING.md](CONTRIBUTING.md), [SUPPORT.md](SUPPORT.md), [SECURITY.md](SECURITY.md), and [docs/SEARCH-STRATEGY.md](docs/SEARCH-STRATEGY.md).
 
 ## License
 

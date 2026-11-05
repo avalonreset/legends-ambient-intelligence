@@ -4,6 +4,16 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.3] - 2026-11-05
+
+### Added
+- Added `docs/AGENT-RECIPE.md` with complete CLI reference and Windows Defender / EDR security guardrails, and expanded security guardrails in `AGENTS.md`.
+- Added `--offline` and `--text` flags to `legends-ambient doctor`.
+- Added `THIRD_PARTY_NOTICES.md`, `assets/manifest.json`, and `scripts/check_release.py`.
+
+### Removed
+- Removed legacy `bin/lai.ps1` wrapper and `LEGENDS.md` shim in favor of the standard `legends-ambient` / `lai` entrypoints and `docs/AGENT-RECIPE.md`.
+
 ## [0.1.2] - 2026-11-04
 
 ### Changed

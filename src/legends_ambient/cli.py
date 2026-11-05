@@ -48,7 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
     # doctor
     p_doc = subparsers.add_parser("doctor", help="Check system readiness and dependencies offline.")
     p_doc.add_argument("--device-label", default=get_default_device_label())
+    p_doc.add_argument("--offline", action="store_true", help="Run offline readiness checks.")
     p_doc.add_argument("--json", action="store_true", help="Output results in JSON format.")
+    p_doc.add_argument("--text", action="store_true", help="Output results in human-readable text format.")
 
     # status
     p_status = subparsers.add_parser("status", help="Show archive state, known hashes, and device discovery.")

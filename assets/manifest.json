@@ -1,0 +1,30 @@
+{
+  "module": "legends-ambient-intelligence",
+  "version": "0.1.3",
+  "assets": {
+    "banner_png": {
+      "path": "assets/banner.png",
+      "width": 4096,
+      "height": 1024,
+      "format": "PNG"
+    },
+    "banner_webp": {
+      "path": "assets/banner.webp",
+      "width": 4096,
+      "height": 1024,
+      "format": "WEBP"
+    },
+    "preview_png": {
+      "path": "assets/preview.png",
+      "width": 1024,
+      "height": 256,
+      "format": "PNG"
+    },
+    "social_preview_png": {
+      "path": "assets/social-preview.png",
+      "width": 1280,
+      "height": 640,
+      "format": "PNG"
+    }
+  }
+}
