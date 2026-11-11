@@ -58,10 +58,11 @@ python -m pip install .
 python -m pip install ".[whisper]"
 ```
 
-Verify your installation:
+Verify your installation (`legends-ambient` or the short alias `lai`):
 
 ```sh
-legends-ambient doctor
+legends-ambient doctor --offline
+# or: lai doctor --offline
 ```
 
 ---

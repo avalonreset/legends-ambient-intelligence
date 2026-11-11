@@ -8,6 +8,28 @@ import shutil
 import subprocess
 
 from .engine import Transcriber, TranscriptionResult, TranscriptSegment, WordTiming
+from ..ingest.sources import is_symlink_or_reparse
+
+ALLOWED_WHISPER_MODELS = {
+    "tiny",
+    "tiny.en",
+    "base",
+    "base.en",
+    "small",
+    "small.en",
+    "medium",
+    "medium.en",
+    "large",
+    "large-v1",
+    "large-v2",
+    "large-v3",
+    "large-v3-turbo",
+    "turbo",
+    "distil-large-v2",
+    "distil-large-v3",
+    "distil-medium.en",
+    "distil-small.en",
+}
 
 
 class WhisperTranscriber(Transcriber):
@@ -18,10 +40,23 @@ class WhisperTranscriber(Transcriber):
         model_name: str = "base",
         device: str = "auto",
         compute_type: str = "default",
+        *,
+        offline: bool = False,
+        allow_custom_model: bool = False,
+        timeout: float = 600.0,
     ) -> None:
+        if not model_name or model_name.startswith("-"):
+            raise ValueError(f"Invalid Whisper model name: {model_name!r}")
+        if not allow_custom_model and model_name not in ALLOWED_WHISPER_MODELS:
+            raise ValueError(
+                f"Untrusted Whisper model {model_name!r}; pass --allow-custom-model to override."
+            )
         self.model_name = model_name
         self.device = device
         self.compute_type = compute_type
+        self.offline = offline
+        self.allow_custom_model = allow_custom_model
+        self.timeout = timeout
         self._model = None
 
     def _get_model(self):
@@ -30,11 +65,13 @@ class WhisperTranscriber(Transcriber):
         try:
             from faster_whisper import WhisperModel  # type: ignore
 
-            self._model = WhisperModel(
-                self.model_name,
-                device=self.device,
-                compute_type=self.compute_type,
-            )
+            kwargs = {
+                "device": self.device,
+                "compute_type": self.compute_type,
+            }
+            if self.offline:
+                kwargs["local_files_only"] = True
+            self._model = WhisperModel(self.model_name, **kwargs)
             return self._model
         except ImportError:
             return None
@@ -48,6 +85,8 @@ class WhisperTranscriber(Transcriber):
             return shutil.which("whisper") is not None
 
     def transcribe(self, audio_path: Path) -> TranscriptionResult:
+        if is_symlink_or_reparse(audio_path):
+            raise ValueError(f"Refusing symlinked audio input: {audio_path}")
         model = self._get_model()
         if model is not None:
             return self._transcribe_faster_whisper(model, audio_path)
@@ -62,7 +101,7 @@ class WhisperTranscriber(Transcriber):
 
     def _transcribe_faster_whisper(self, model, audio_path: Path) -> TranscriptionResult:
         segments_raw, info = model.transcribe(
-            str(audio_path),
+            str(audio_path.resolve()),
             word_timestamps=True,
             vad_filter=True,
         )
@@ -99,18 +138,30 @@ class WhisperTranscriber(Transcriber):
     def _transcribe_cli(self, audio_path: Path) -> TranscriptionResult:
         import tempfile
 
+        resolved_audio = audio_path.resolve()
         with tempfile.TemporaryDirectory() as tmp_dir:
             cmd = [
                 "whisper",
-                str(audio_path),
                 "--model",
                 self.model_name,
                 "--output_dir",
                 tmp_dir,
                 "--output_format",
                 "json",
+                "--",
+                str(resolved_audio),
             ]
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            try:
+                res = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.timeout,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise RuntimeError(
+                    f"whisper CLI timed out after {self.timeout}s for {audio_path.name}"
+                ) from exc
             if res.returncode != 0:
                 raise RuntimeError(f"whisper CLI execution failed: {res.stderr}")
 

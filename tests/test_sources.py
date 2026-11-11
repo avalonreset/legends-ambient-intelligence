@@ -10,6 +10,7 @@ from legends_ambient.ingest.device_source import (
     _win32_eject_volume,
     _win32_find_mounted_device,
     find_mounted_device,
+    validate_device_label,
 )
 from legends_ambient.ingest.local_source import LocalDirectorySource
 from legends_ambient.ingest.sources import (
@@ -195,16 +196,25 @@ class TestSourcesEdge(unittest.TestCase):
         # Drives C (bit 2) and E (bit 4)
         fake_kernel32.GetLogicalDrives.return_value = (1 << 2) | (1 << 4)
 
+        def fake_get_drive_type(root_ptr):
+            root = root_ptr.value
+            if root == "C:\\":
+                return 3  # DRIVE_FIXED
+            if root == "E:\\":
+                return 2  # DRIVE_REMOVABLE
+            return 0
+
         def fake_get_vol_info(root_ptr, vol_buf, buf_len, *args):
             root = root_ptr.value
             if root == "C:\\":
-                vol_buf.value = "OS"
+                vol_buf.value = "KT5000"  # Fixed drive masquerading as KT5000 must be ignored
                 return 1
             if root == "E:\\":
                 vol_buf.value = "KT5000"
                 return 1
             return 0
 
+        fake_kernel32.GetDriveTypeW.side_effect = fake_get_drive_type
         fake_kernel32.GetVolumeInformationW.side_effect = fake_get_vol_info
         fake_windll = mock.MagicMock(kernel32=fake_kernel32)
 
@@ -218,6 +228,7 @@ class TestSourcesEdge(unittest.TestCase):
         self.assertFalse(_win32_eject_volume(Path("not-a-drive")))
 
         fake_kernel32 = mock.MagicMock()
+        fake_kernel32.GetDriveTypeW.return_value = 2  # DRIVE_REMOVABLE
         fake_kernel32.CreateFileW.return_value = 42
         fake_kernel32.DeviceIoControl.return_value = 1
         fake_windll = mock.MagicMock(kernel32=fake_kernel32)
@@ -226,6 +237,19 @@ class TestSourcesEdge(unittest.TestCase):
             self.assertTrue(_win32_eject_volume(Path("E:\\")))
             self.assertEqual(fake_kernel32.DeviceIoControl.call_count, 4)
             fake_kernel32.CloseHandle.assert_called_once()
+
+        # Refuse to eject fixed drives (DRIVE_FIXED = 3)
+        fake_kernel32.reset_mock()
+        fake_kernel32.GetDriveTypeW.return_value = 3
+        with mock.patch("legends_ambient.ingest.device_source.ctypes.windll", fake_windll, create=True):
+            self.assertFalse(_win32_eject_volume(Path("C:\\")))
+            fake_kernel32.CreateFileW.assert_not_called()
+
+    def test_validate_device_label_rejects_traversal(self):
+        self.assertEqual(validate_device_label("KT5000"), "KT5000")
+        for bad in ("../etc", "a/b", "a\\b", "C:drive", ""):
+            with self.assertRaises(ValueError):
+                validate_device_label(bad)
 
 
 if __name__ == "__main__":

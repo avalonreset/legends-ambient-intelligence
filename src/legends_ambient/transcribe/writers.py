@@ -4,9 +4,31 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Sequence
 
+from ..ingest.sources import is_symlink_or_reparse
 from .engine import TranscriptionResult
+
+_WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{i}" for i in range(1, 10)),
+    *(f"LPT{i}" for i in range(1, 10)),
+}
+
+
+def _safe_file_slug(raw_slug: str) -> str:
+    """Sanitize a filename stem so it is safe to use as a single filename across OSes."""
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "-", raw_slug.strip()).strip(".-")
+    if not cleaned:
+        return "transcript"
+    stem = cleaned.split(".", 1)[0].upper()
+    if stem in _WINDOWS_RESERVED_NAMES:
+        cleaned = f"file-{cleaned}"
+    return cleaned[:120]
 
 
 def _split_timestamp(seconds: float) -> tuple[int, int, int, int]:
@@ -33,19 +55,38 @@ def format_timestamp_vtt(seconds: float) -> str:
 def write_transcript_artifacts(
     result: TranscriptionResult,
     output_dir: Path,
+    *,
+    overwrite: bool = False,
 ) -> dict[str, Path]:
     """Write sidecar artifacts (.txt, .json, .srt, .vtt, .words.json) for a result."""
+    if is_symlink_or_reparse(output_dir):
+        raise ValueError(f"Refusing symlinked transcript output directory: {output_dir}")
     output_dir.mkdir(parents=True, exist_ok=True)
-    base_name = Path(result.filename).stem
+    resolved_dir = output_dir.resolve()
+    base_name = _safe_file_slug(Path(result.filename).stem)
     paths: dict[str, Path] = {}
 
-    # TXT
     txt_path = output_dir / f"{base_name}.txt"
+    json_path = output_dir / f"{base_name}.json"
+    srt_path = output_dir / f"{base_name}.srt"
+    vtt_path = output_dir / f"{base_name}.vtt"
+    words_path = output_dir / f"{base_name}.words.json"
+
+    for target in (txt_path, json_path, srt_path, vtt_path, words_path):
+        if is_symlink_or_reparse(target):
+            raise ValueError(f"Refusing symlinked transcript artifact path: {target}")
+        if not target.resolve().is_relative_to(resolved_dir):
+            raise ValueError(f"Transcript artifact path escapes output_dir: {target}")
+        if target.exists() and not overwrite:
+            raise FileExistsError(
+                f"Refusing to overwrite existing transcript artifact without --overwrite: {target}"
+            )
+
+    # TXT
     txt_path.write_text(result.text.strip() + "\n", encoding="utf-8")
     paths["txt"] = txt_path
 
     # JSON
-    json_path = output_dir / f"{base_name}.json"
     data = {
         "audio_path": result.audio_path,
         "filename": result.filename,
@@ -67,7 +108,6 @@ def write_transcript_artifacts(
     paths["json"] = json_path
 
     # SRT
-    srt_path = output_dir / f"{base_name}.srt"
     srt_lines: list[str] = []
     for idx, seg in enumerate(result.segments, start=1):
         srt_lines.append(str(idx))
@@ -78,7 +118,6 @@ def write_transcript_artifacts(
     paths["srt"] = srt_path
 
     # VTT
-    vtt_path = output_dir / f"{base_name}.vtt"
     vtt_lines: list[str] = ["WEBVTT", ""]
     for seg in result.segments:
         vtt_lines.append(f"{format_timestamp_vtt(seg.start)} --> {format_timestamp_vtt(seg.end)}")
@@ -97,7 +136,6 @@ def write_transcript_artifacts(
                 "end": w.end,
                 "confidence": w.confidence,
             })
-    words_path = output_dir / f"{base_name}.words.json"
     words_path.write_text(json.dumps(all_words, indent=2) + "\n", encoding="utf-8")
     paths["words"] = words_path
 
@@ -107,8 +145,16 @@ def write_transcript_artifacts(
 def write_transcript_index(
     results: Sequence[TranscriptionResult],
     output_file: Path,
+    *,
+    overwrite: bool = False,
 ) -> None:
     """Write markdown index table of transcript results."""
+    if is_symlink_or_reparse(output_file) or is_symlink_or_reparse(output_file.parent):
+        raise ValueError(f"Refusing symlinked transcript index path: {output_file}")
+    if output_file.exists() and not overwrite:
+        raise FileExistsError(
+            f"Refusing to overwrite existing transcript index without --overwrite: {output_file}"
+        )
     lines: list[str] = [
         "# Transcript index",
         "",
@@ -119,7 +165,7 @@ def write_transcript_index(
     ]
 
     for r in results:
-        base = Path(r.filename).stem
+        base = _safe_file_slug(Path(r.filename).stem)
         links = (
             f"[TXT]({base}.txt) . "
             f"[SRT]({base}.srt) . "

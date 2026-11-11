@@ -185,6 +185,94 @@ class TestTranscribeEdge(unittest.TestCase):
             ParakeetTranscriber().is_available(),
         )
 
+    def test_model_allowlist_and_overwrite_guard(self):
+        with self.assertRaises(ValueError):
+            WhisperTranscriber(model_name="--evil-flag")
+        with self.assertRaises(ValueError):
+            WhisperTranscriber(model_name="attacker/rogue-repo")
+        custom_w = WhisperTranscriber(model_name="org/custom-whisper", allow_custom_model=True)
+        self.assertEqual(custom_w.model_name, "org/custom-whisper")
+
+        with self.assertRaises(ValueError):
+            ParakeetTranscriber(model_name="attacker/rogue-nemo")
+        custom_p = ParakeetTranscriber(model_name="org/custom-nemo", allow_custom_model=True)
+        self.assertEqual(custom_p.model_name, "org/custom-nemo")
+
+    def test_parakeet_offline_sets_hf_hub_offline_and_supports_restore_from(self):
+        import os
+        import sys
+        import types
+
+        captured_env = []
+        restore_calls = []
+
+        class FakeModel:
+            def transcribe(self, paths):
+                return ["offline parakeet transcript"]
+
+        class FakeASRModel:
+            @staticmethod
+            def from_pretrained(model_name):
+                captured_env.append(os.environ.get("HF_HUB_OFFLINE"))
+                return FakeModel()
+
+            @staticmethod
+            def restore_from(restore_path):
+                captured_env.append(os.environ.get("HF_HUB_OFFLINE"))
+                restore_calls.append(restore_path)
+                return FakeModel()
+
+        fake_nemo = types.ModuleType("nemo")
+        fake_collections = types.ModuleType("nemo.collections")
+        fake_asr = types.ModuleType("nemo.collections.asr")
+        fake_asr.models = types.SimpleNamespace(ASRModel=FakeASRModel)
+        fake_collections.asr = fake_asr
+        fake_nemo.collections = fake_collections
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            audio = Path(tmp_dir) / "sample.wav"
+            audio.write_bytes(b"RIFF")
+            nemo_file = Path(tmp_dir) / "local_model.nemo"
+            nemo_file.write_bytes(b"NEMO")
+
+            with mock.patch.dict(
+                sys.modules,
+                {
+                    "nemo": fake_nemo,
+                    "nemo.collections": fake_collections,
+                    "nemo.collections.asr": fake_asr,
+                },
+            ), mock.patch.object(ParakeetTranscriber, "is_available", return_value=True):
+                t1 = ParakeetTranscriber(offline=True)
+                res1 = t1.transcribe(audio)
+                self.assertEqual(res1.text, "offline parakeet transcript")
+                self.assertEqual(captured_env[-1], "1")
+                self.assertIsNone(os.environ.get("HF_HUB_OFFLINE"))
+
+                t2 = ParakeetTranscriber(
+                    model_name=str(nemo_file),
+                    offline=True,
+                    allow_custom_model=True,
+                )
+                res2 = t2.transcribe(audio)
+                self.assertEqual(res2.text, "offline parakeet transcript")
+                self.assertEqual(restore_calls, [str(nemo_file.resolve())])
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            res = TranscriptionResult(
+                audio_path="",
+                filename="dup.wav",
+                duration_seconds=1.0,
+                language="en",
+                text="hello",
+                segments=[],
+                model="mock-v1",
+            )
+            write_transcript_artifacts(res, Path(tmp_dir))
+            with self.assertRaises(FileExistsError):
+                write_transcript_artifacts(res, Path(tmp_dir), overwrite=False)
+            write_transcript_artifacts(res, Path(tmp_dir), overwrite=True)
+
 
 if __name__ == "__main__":
     unittest.main()

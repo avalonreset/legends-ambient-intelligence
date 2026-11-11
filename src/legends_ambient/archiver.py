@@ -9,7 +9,11 @@ from pathlib import Path
 import shutil
 from typing import Optional, Sequence
 
-from .ingest.sources import AudioFile, compute_file_sha256
+from .ingest.sources import AudioFile, compute_file_sha256, is_symlink_or_reparse
+
+DEFAULT_MAX_FILES = 150
+DEFAULT_MAX_BYTES = 2 * 1024 * 1024 * 1024
+MAX_MANIFEST_BYTES = 1_048_576
 
 
 @dataclass
@@ -32,18 +36,27 @@ class Archiver:
     """Manages content-addressable audio archiving and deduplication."""
 
     def __init__(self, archive_root: Path) -> None:
+        if is_symlink_or_reparse(archive_root):
+            raise ValueError(f"Refusing symlinked archive_root: {archive_root}")
         self.archive_root = archive_root.resolve()
 
     def get_known_hashes(self) -> set[str]:
         """Collect all existing SHA-256 hashes from previously archived manifests."""
         known: set[str] = set()
-        if not self.archive_root.is_dir():
+        if is_symlink_or_reparse(self.archive_root) or not self.archive_root.is_dir():
             return known
 
         for manifest_path in self.archive_root.glob("**/manifest.json"):
             try:
-                data = json.loads(manifest_path.read_text(encoding="utf-8"))
-                for rec in data.get("recordings", []):
+                if is_symlink_or_reparse(manifest_path):
+                    continue
+                resolved = manifest_path.resolve()
+                if not resolved.is_relative_to(self.archive_root):
+                    continue
+                if resolved.stat().st_size > MAX_MANIFEST_BYTES:
+                    continue
+                data = json.loads(resolved.read_text(encoding="utf-8"))
+                for rec in data.get("recordings", []) or []:
                     sha = rec.get("sha256")
                     if sha:
                         known.add(sha.upper())
@@ -57,8 +70,13 @@ class Archiver:
         files: Sequence[AudioFile],
         slug: str = "creative-sketchpad",
         what_if: bool = False,
+        *,
+        max_files: int = DEFAULT_MAX_FILES,
+        max_bytes: int = DEFAULT_MAX_BYTES,
     ) -> IngestReceipt:
         """Deduplicate and archive a collection of audio files."""
+        if max_files <= 0 or max_bytes <= 0:
+            raise ValueError("max_files and max_bytes must be positive")
         known = self.get_known_hashes()
         new_files = [f for f in files if f.sha256.upper() not in known]
 
@@ -74,6 +92,16 @@ class Archiver:
                 manifest_path=None,
             )
 
+        if len(new_files) > max_files:
+            raise ValueError(
+                f"Batch file count ({len(new_files)}) exceeds --max-files limit ({max_files})"
+            )
+        planned_bytes = sum(f.size_bytes for f in new_files)
+        if planned_bytes > max_bytes:
+            raise ValueError(
+                f"Batch byte size ({planned_bytes}) exceeds --max-bytes limit ({max_bytes})"
+            )
+
         now = datetime.now(timezone.utc)
         safe_slug = "".join(c if c.isalnum() else "-" for c in slug.lower()).strip("-") or "ingest"
         date_dir = self.archive_root / now.strftime("%Y") / now.strftime("%m") / now.strftime("%d")
@@ -85,7 +113,6 @@ class Archiver:
             ingest_dir = date_dir / f"{safe_slug}-{counter:02d}"
 
         if what_if:
-            total_bytes = sum(f.size_bytes for f in new_files)
             return IngestReceipt(
                 status="dry-run",
                 archive_root=str(self.archive_root),
@@ -93,7 +120,7 @@ class Archiver:
                 total_scanned=len(files),
                 already_archived=len(files) - len(new_files),
                 new_archived=len(new_files),
-                new_bytes=total_bytes,
+                new_bytes=planned_bytes,
                 manifest_path=None,
             )
 
@@ -109,10 +136,15 @@ class Archiver:
 
         try:
             for audio in new_files:
-                dest_name = audio.filename
+                if is_symlink_or_reparse(audio.path):
+                    raise ValueError(f"Refusing symlinked source audio: {audio.path}")
+                safe_base_name = Path(audio.filename).name
+                if not safe_base_name or safe_base_name in {".", ".."} or "/" in safe_base_name or "\\" in safe_base_name or ":" in safe_base_name:
+                    raise ValueError(f"Unsafe audio filename: {audio.filename!r}")
+                dest_name = safe_base_name
                 if dest_name in used_names:
-                    stem = Path(audio.filename).stem
-                    suffix = Path(audio.filename).suffix
+                    stem = Path(safe_base_name).stem
+                    suffix = Path(safe_base_name).suffix
                     short_hash = audio.sha256[:8].lower()
                     dest_name = f"{stem}-{short_hash}{suffix}"
                     dup_counter = 1
@@ -122,6 +154,8 @@ class Archiver:
                 used_names.add(dest_name)
 
                 dest_file = raw_dir / dest_name
+                if is_symlink_or_reparse(dest_file) or not dest_file.resolve().is_relative_to(raw_dir.resolve()):
+                    raise ValueError(f"Refusing unsafe destination path: {dest_file}")
                 shutil.copy2(audio.path, dest_file)
                 verified_hash = compute_file_sha256(dest_file)
                 if verified_hash != audio.sha256:

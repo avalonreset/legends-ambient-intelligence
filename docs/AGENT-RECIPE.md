@@ -1,6 +1,6 @@
 # Legends Ambient Intelligence Agent Recipe
 
-Deterministic operator procedure for `legends-ambient-intelligence` (`v0.1.3`). Loaded by `cto-legends handoff legends-ambient-intelligence`. Do not register a separate per-module skill.
+Deterministic operator procedure for `legends-ambient-intelligence` (`v0.1.4`). Loaded by `cto-legends handoff legends-ambient-intelligence`. Do not register a separate per-module skill.
 
 ## 1. Readiness & Diagnostics
 
@@ -21,12 +21,12 @@ legends-ambient status
 
 | Command | Purpose | Mutates Local State / Network |
 | --- | --- | --- |
-| `legends-ambient [--archive-root <dir>] doctor [--offline] [--device-label <label>] [--json] [--text]` | Run offline readiness checks across Python, archive storage, audio tools, ASR backends, and USB hardware | Read-only (ensures archive root dir exists) |
+| `legends-ambient [--archive-root <dir>] doctor [--offline] [--device-label <label>] [--json \| --text]` | Run offline readiness checks across Python, archive storage, audio tools, ASR backends, and USB hardware | Read-only (ensures archive root dir exists) |
 | `legends-ambient [--archive-root <dir>] status [--device-label <label>]` | Show archive root, count of deduplicated SHA-256 hashes, and USB volume mount state | Read-only |
-| `legends-ambient [--archive-root <dir>] ingest (--source <dir> \| --device) [--device-label <label>] [--slug <slug>] [--what-if] [--eject]` | Non-destructively discover audio files, deduplicate by SHA-256 against archive manifests, copy new files into a dated package (`manifest.json`, `SHA256SUMS.txt`), and optionally dismount USB media | Writes archive package (`--what-if` is read-only) |
-| `legends-ambient [--archive-root <dir>] transcribe <target_dir_or_file> [--backend whisper\|parakeet\|mock] [--model <name>]` | Transcribe an archived session package or single audio file into `transcripts/` (`TXT`, `JSON`, `SRT`, `VTT`, `words.json`, and `index.md`) | Writes transcript sidecars |
+| `legends-ambient [--archive-root <dir>] ingest (--source <dir> \| --device) [--device-label <label>] [--slug <slug>] [--what-if] [--eject] [--max-files 150] [--max-bytes 2147483648]` | Non-destructively discover audio files, deduplicate by SHA-256 against archive manifests, copy new files into a dated package (`manifest.json`, `SHA256SUMS.txt`), and optionally dismount USB media | Writes archive package (`--what-if` is read-only) |
+| `legends-ambient [--archive-root <dir>] transcribe <target_dir_or_file> [--backend whisper\|parakeet\|mock] [--model <name>] [--offline] [--allow-custom-model] [--overwrite]` | Transcribe an archived session package or single audio file into `transcripts/` (`TXT`, `JSON`, `SRT`, `VTT`, `words.json`, and `index.md`) | Writes transcript sidecars |
 | `legends-ambient [--archive-root <dir>] recover (--source <dir> \| --device) [--device-label <label>] [--transcript <file>] [--latest-tail 15] [--predecessor-tail 5]` | Analyze split-file rollover boundaries and mid-thought continuation words (`and`, `but`, `because`, `then`) to produce a prompt-recovery plan | Read-only (emits JSON plan) |
-| `legends-ambient [--archive-root <dir>] distill <transcript.json_or_txt> [--vault <obsidian_dir>] [--slug <note_slug>]` | Extract action items, decisions, and recurring themes from a transcript and format or write an Obsidian Markdown note with audio provenance | Writes `.md` note if `--vault` is given, else stdout |
+| `legends-ambient [--archive-root <dir>] distill <transcript.json_or_txt> [--vault <obsidian_dir>] [--slug <note_slug>] [--overwrite]` | Extract action items, decisions, and recurring themes from a transcript and format or write an Obsidian Markdown note with audio provenance | Writes `.md` note if `--vault` is given, else stdout |
 
 ## 3. Standard Operating Procedure
 

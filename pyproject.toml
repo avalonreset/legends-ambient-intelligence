@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legends-ambient-intelligence"
-version = "0.1.3"
+version = "0.1.4"
 description = "Ambient audio capture, safe deduplicated archive, offline transcription, and knowledge distillation for the Legends ecosystem."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"]
 authors = [{name = "Benjamin Samar / CTO Legends", email = "advisory@cto-legends.com"}]
 keywords = [
     "ambient",

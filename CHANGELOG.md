@@ -4,6 +4,18 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.4] - 2026-11-10
+
+### Added
+- Added `MANIFEST.in` and `license-files` in `pyproject.toml` so sdist and wheel distributions bundle `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.md`, `docs/`, and `skills/cto-legends/SKILL.md`.
+- Added `--max-files` (default `150`) and `--max-bytes` (default `2 GiB`) batch caps to `legends-ambient ingest`, plus `1 MiB` manifest read bounds and `25 MiB` transcript read bounds.
+- Added `--offline`, `--allow-custom-model`, and `--overwrite` flags to `legends-ambient transcribe`, and `--overwrite` to `legends-ambient distill`.
+
+### Security
+- Refused symlinked and NTFS reparse-point files and directories across audio discovery, archiving, transcription, recovery, and Obsidian note export (`CWE-59`, `CWE-61`).
+- Enforced strict path-component validation (`validate_device_label`, `_safe_file_slug`) and Windows reserved device name guards to prevent path traversal or drive-relative escapes (`CWE-22`).
+- Restricted Whisper and Parakeet model identifiers to vetted allowlists by default (unless `--allow-custom-model` is passed), added `--` option terminators and execution timeouts to subprocess invocations (`CWE-88`, `CWE-400`), and enforced `GetDriveTypeW == DRIVE_REMOVABLE` checks and explicit `ctypes` signatures before Windows USB volume discovery or ejection (`CWE-252`, `CWE-704`).
+
 ## [0.1.3] - 2026-11-05
 
 ### Added

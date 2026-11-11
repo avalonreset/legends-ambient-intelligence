@@ -2,6 +2,8 @@
 """Release readiness gate for legends-ambient-intelligence."""
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import struct
@@ -22,6 +24,7 @@ REQUIRED_FILES = [
     "SUPPORT.md",
     "CITATION.cff",
     "AGENTS.md",
+    "MANIFEST.in",
     "docs/AGENT-RECIPE.md",
     ".legends-module",
     "skills/cto-legends/SKILL.md",
@@ -45,7 +48,9 @@ SKIP_DIRS = {
     ".ruff_cache",
 }
 
-TEXT_EXTS = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cff", ".txt"}
+TEXT_EXTS = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cff", ".txt", ".in"}
+
+FORBIDDEN_EXTS = {".ps1", ".bat", ".cmd", ".vbs", ".ahk", ".pem", ".key", ".p12", ".pfx"}
 
 FORBIDDEN_PATTERNS = [
     r"(?i)[a-z]:\\users\\(?!public\b|default\b|someone\b|you\b|<)",
@@ -56,7 +61,12 @@ FORBIDDEN_PATTERNS = [
     r"(?i)CryptUnprotectData",
     r"(?i)GetAsyncKeyState",
     r"(?i)IndexedDB",
+    r"AKIA[0-9A-Z]{16}",
+    r"ghp_[A-Za-z0-9]{36}",
+    r"github_pat_[A-Za-z0-9_]{20,}",
 ]
+
+MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
 def check_png_chunks(path: Path, issues: list[str]) -> None:
@@ -68,17 +78,76 @@ def check_png_chunks(path: Path, issues: list[str]) -> None:
     while offset + 8 <= len(data):
         length = struct.unpack(">I", data[offset : offset + 4])[0]
         chunk_type = data[offset + 4 : offset + 8].decode("latin1", errors="replace")
-        if chunk_type in {"tEXt", "zTXt", "iTXt", "eXIf"}:
+        if chunk_type in {"tEXt", "zTXt", "iTXt", "eXIf", "caBX"}:
             issues.append(f"{path.name}: forbidden metadata chunk {chunk_type}")
         offset += 12 + length
 
 
 def check_webp_chunks(path: Path, issues: list[str]) -> None:
     data = path.read_bytes()
-    for marker in (b"EXIF", b"XMP "):
+    for marker in (b"EXIF", b"XMP ", b"c2pa"):
         if marker in data:
-            label = marker.decode("ascii").strip()
+            label = marker.decode("ascii", errors="replace").strip()
             issues.append(f"{path.name}: forbidden metadata marker {label}")
+
+
+def check_markdown_links(md_path: Path, text: str, issues: list[str]) -> None:
+    in_fence = False
+    for line in text.splitlines():
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for match in MD_LINK_RE.finditer(line):
+            target = match.group(1).strip()
+            if not target or target.startswith(("#", "http://", "https://", "mailto:")):
+                continue
+            clean = target.split("#", 1)[0].split("?", 1)[0].strip()
+            if not clean:
+                continue
+            resolved = (md_path.parent / clean).resolve()
+            if not resolved.exists():
+                rel_md = md_path.relative_to(ROOT).as_posix()
+                issues.append(f"Broken relative link in {rel_md}: {target}")
+
+
+def check_assets_manifest(expected_version: str | None, issues: list[str]) -> None:
+    manifest_path = ROOT / "assets/manifest.json"
+    if not manifest_path.is_file():
+        return
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        issues.append(f"Invalid assets/manifest.json: {exc}")
+        return
+
+    if expected_version and manifest.get("version") != expected_version:
+        issues.append(
+            f"assets/manifest.json version {manifest.get('version')!r} != {expected_version!r}"
+        )
+
+    files = manifest.get("files")
+    if not isinstance(files, list) or not files:
+        issues.append("assets/manifest.json must contain a non-empty 'files' list")
+        return
+
+    for entry in files:
+        rel_path = entry.get("path", "")
+        asset_file = ROOT / rel_path
+        if not asset_file.is_file():
+            issues.append(f"Manifest asset missing on disk: {rel_path}")
+            continue
+        raw = asset_file.read_bytes()
+        actual_sha = hashlib.sha256(raw).hexdigest()
+        if entry.get("bytes") != len(raw):
+            issues.append(
+                f"Manifest byte size mismatch for {rel_path}: {entry.get('bytes')} != {len(raw)}"
+            )
+        if entry.get("sha256") != actual_sha:
+            issues.append(
+                f"Manifest sha256 mismatch for {rel_path}: {entry.get('sha256')} != {actual_sha}"
+            )
 
 
 def main() -> int:
@@ -97,20 +166,26 @@ def main() -> int:
     init_py = (ROOT / "src/legends_ambient/__init__.py").read_text(encoding="utf-8")
     citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    recipe = (ROOT / "docs/AGENT-RECIPE.md").read_text(encoding="utf-8")
 
     m_py = re.search(r'^version\s*=\s*"([^"]+)"', pyproject, re.M)
     m_init = re.search(r'^__version__\s*=\s*"([^"]+)"', init_py, re.M)
     m_cit = re.search(r'^version:\s*"?([^"\n]+)"?', citation, re.M)
     m_chg = re.search(r"^##\s+\[?v?(\d+\.\d+\.\d+)\]?", changelog, re.M)
+    m_rec = re.search(r"\(`v(\d+\.\d+\.\d+)`\)", recipe)
 
     versions = {
         "pyproject.toml": m_py.group(1) if m_py else None,
         "__init__.py": m_init.group(1) if m_init else None,
         "CITATION.cff": m_cit.group(1).strip() if m_cit else None,
         "CHANGELOG.md": m_chg.group(1) if m_chg else None,
+        "docs/AGENT-RECIPE.md": m_rec.group(1) if m_rec else None,
     }
     if len(set(versions.values())) != 1 or None in versions.values():
         issues.append(f"Version mismatch across files: {versions}")
+
+    expected_version = versions["pyproject.toml"]
+    check_assets_manifest(expected_version, issues)
 
     skill_files: list[str] = []
     for dirpath, dirnames, filenames in os.walk(ROOT):
@@ -122,8 +197,8 @@ def main() -> int:
             rel = path.relative_to(ROOT).as_posix()
             if fn == "SKILL.md":
                 skill_files.append(rel)
-            if path.suffix.lower() in {".ps1", ".bat", ".cmd", ".vbs", ".ahk"}:
-                issues.append(f"Forbidden script extension in repo: {rel}")
+            if path.suffix.lower() in FORBIDDEN_EXTS:
+                issues.append(f"Forbidden file extension in repo: {rel}")
             if path.suffix.lower() in TEXT_EXTS:
                 try:
                     text = path.read_text(encoding="utf-8")
@@ -135,6 +210,7 @@ def main() -> int:
                 if path.suffix.lower() == ".md":
                     if "\u2014" in text or "\u2013" in text:
                         issues.append(f"Em/en-dash found in markdown file: {rel}")
+                    check_markdown_links(path, text, issues)
                 if rel != "scripts/check_release.py":
                     for pat in FORBIDDEN_PATTERNS:
                         if re.search(pat, text):

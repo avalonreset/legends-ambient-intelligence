@@ -10,7 +10,7 @@ import sys
 from typing import Optional
 
 from . import __version__
-from .archiver import Archiver
+from .archiver import Archiver, DEFAULT_MAX_BYTES, DEFAULT_MAX_FILES
 from .config import (
     get_default_archive_root,
     get_default_device_label,
@@ -20,14 +20,16 @@ from .distill.concepts import extract_distilled_candidates
 from .distill.obsidian_export import generate_obsidian_note
 from .distill.prompt_recovery import analyze_prompt_recovery
 from .doctor import Doctor
-from .ingest.device_source import DeviceSource, find_mounted_device
+from .ingest.device_source import DeviceSource, find_mounted_device, validate_device_label
 from .ingest.local_source import LocalDirectorySource
-from .ingest.sources import AudioFile, scan_audio_directory
+from .ingest.sources import AudioFile, is_symlink_or_reparse, scan_audio_directory
 from .transcribe.engine import Transcriber, TranscriptionResult
 from .transcribe.mock_backend import MockTranscriber
 from .transcribe.parakeet_backend import ParakeetTranscriber
 from .transcribe.whisper_backend import WhisperTranscriber
 from .transcribe.writers import write_transcript_artifacts, write_transcript_index
+
+MAX_TRANSCRIPT_BYTES = 25 * 1024 * 1024
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,8 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_doc = subparsers.add_parser("doctor", help="Check system readiness and dependencies offline.")
     p_doc.add_argument("--device-label", default=get_default_device_label())
     p_doc.add_argument("--offline", action="store_true", help="Run offline readiness checks.")
-    p_doc.add_argument("--json", action="store_true", help="Output results in JSON format.")
-    p_doc.add_argument("--text", action="store_true", help="Output results in human-readable text format.")
+    doc_fmt = p_doc.add_mutually_exclusive_group()
+    doc_fmt.add_argument("--json", action="store_true", help="Output results in JSON format.")
+    doc_fmt.add_argument("--text", action="store_true", help="Output results in human-readable text format.")
 
     # status
     p_status = subparsers.add_parser("status", help="Show archive state, known hashes, and device discovery.")
@@ -58,23 +61,52 @@ def build_parser() -> argparse.ArgumentParser:
 
     # ingest
     p_ingest = subparsers.add_parser("ingest", help="Discover, hash, and archive new audio files safely.")
-    p_ingest.add_argument("--source", type=Path, help="Local directory of audio files to ingest.")
-    p_ingest.add_argument("--device", action="store_true", help="Auto-detect mounted USB recorder.")
+    ingest_src = p_ingest.add_mutually_exclusive_group(required=True)
+    ingest_src.add_argument("--source", type=Path, help="Local directory of audio files to ingest.")
+    ingest_src.add_argument("--device", action="store_true", help="Auto-detect mounted USB recorder.")
     p_ingest.add_argument("--device-label", default=get_default_device_label(), help="Volume label of USB recorder.")
     p_ingest.add_argument("--slug", default="creative-sketchpad", help="Descriptive slug for this ingest session.")
     p_ingest.add_argument("--what-if", action="store_true", help="Preview new files without copying.")
     p_ingest.add_argument("--eject", action="store_true", help="Safely eject the USB recorder when finished.")
+    p_ingest.add_argument(
+        "--max-files",
+        type=int,
+        default=DEFAULT_MAX_FILES,
+        help="Maximum number of new audio files to archive per batch (default: 150).",
+    )
+    p_ingest.add_argument(
+        "--max-bytes",
+        type=int,
+        default=DEFAULT_MAX_BYTES,
+        help="Maximum total bytes of new audio files per batch (default: 2 GiB).",
+    )
 
     # transcribe
     p_trans = subparsers.add_parser("transcribe", help="Transcribe an ingested package or audio file.")
     p_trans.add_argument("target", type=Path, help="Directory containing raw audio or single audio file.")
     p_trans.add_argument("--backend", choices=["whisper", "parakeet", "mock"], default="whisper")
     p_trans.add_argument("--model", default=get_default_model_name(), help="Model name or size.")
+    p_trans.add_argument(
+        "--offline",
+        action="store_true",
+        help="Enforce local-only model loading (no Hugging Face downloads).",
+    )
+    p_trans.add_argument(
+        "--allow-custom-model",
+        action="store_true",
+        help="Allow non-allowlisted Whisper or Parakeet model identifiers.",
+    )
+    p_trans.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow overwriting existing transcript artifacts.",
+    )
 
     # recover
     p_rec = subparsers.add_parser("recover", help="Analyze prompt continuation and split rollover boundaries.")
-    p_rec.add_argument("--source", type=Path, help="Directory of audio recordings.")
-    p_rec.add_argument("--device", action="store_true", help="Use mounted hardware recorder.")
+    rec_src = p_rec.add_mutually_exclusive_group(required=True)
+    rec_src.add_argument("--source", type=Path, help="Directory of audio recordings.")
+    rec_src.add_argument("--device", action="store_true", help="Use mounted hardware recorder.")
     p_rec.add_argument("--device-label", default=get_default_device_label())
     p_rec.add_argument("--transcript", type=Path, help="Path to latest transcript text for continuation check.")
     p_rec.add_argument("--latest-tail", type=int, default=15, help="Minutes of latest recording tail.")
@@ -85,12 +117,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_dist.add_argument("transcript", type=Path, help="Path to transcript TXT or JSON.")
     p_dist.add_argument("--vault", type=Path, help="Destination Obsidian vault directory.")
     p_dist.add_argument("--slug", help="Note filename/title slug.")
+    p_dist.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow overwriting an existing Obsidian vault note.",
+    )
 
     return parser
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    doc = Doctor(archive_root=args.archive_root, device_label=args.device_label)
+    try:
+        validate_device_label(args.device_label)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    doc = Doctor(
+        archive_root=args.archive_root,
+        device_label=args.device_label,
+        offline=args.offline,
+    )
     results = doc.run_all()
     if args.json:
         print(json.dumps([asdict(r) for r in results], indent=2))
@@ -104,7 +150,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    archiver = Archiver(archive_root=args.archive_root)
+    try:
+        validate_device_label(args.device_label)
+        archiver = Archiver(archive_root=args.archive_root)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     known = archiver.get_known_hashes()
     device = find_mounted_device(args.device_label)
 
@@ -117,12 +168,21 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_ingest(args: argparse.Namespace) -> int:
-    archiver = Archiver(archive_root=args.archive_root)
+    try:
+        validate_device_label(args.device_label)
+        archiver = Archiver(archive_root=args.archive_root)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     discovered_files: list[AudioFile] = []
     eject_fn = None
 
     if args.source:
-        local_src = LocalDirectorySource(args.source)
+        try:
+            local_src = LocalDirectorySource(args.source)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
         if not local_src.exists():
             print(f"Error: Source directory does not exist: {args.source}", file=sys.stderr)
             return 1
@@ -133,16 +193,26 @@ def cmd_ingest(args: argparse.Namespace) -> int:
             print(f"Error: No mounted USB device found with label '{args.device_label}'.", file=sys.stderr)
             print("Specify a directory with --source to ingest computer mic or local recordings.", file=sys.stderr)
             return 1
-        dev_src = DeviceSource(mount, volume_label=args.device_label)
+        try:
+            dev_src = DeviceSource(mount, volume_label=args.device_label)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
         discovered_files = dev_src.discover()
         if args.eject:
             eject_fn = dev_src.safe_eject
 
-    receipt = archiver.archive(
-        files=discovered_files,
-        slug=args.slug,
-        what_if=args.what_if,
-    )
+    try:
+        receipt = archiver.archive(
+            files=discovered_files,
+            slug=args.slug,
+            what_if=args.what_if,
+            max_files=args.max_files,
+            max_bytes=args.max_bytes,
+        )
+    except (ValueError, OSError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
     if eject_fn and not args.what_if:
         ejected = eject_fn()
@@ -157,18 +227,33 @@ def cmd_ingest(args: argparse.Namespace) -> int:
 
 
 def cmd_transcribe(args: argparse.Namespace) -> int:
+    if is_symlink_or_reparse(args.target):
+        print(f"Error: Refusing symlinked target path: {args.target}", file=sys.stderr)
+        return 1
     target = args.target.resolve()
     if not target.exists():
         print(f"Error: Target path does not exist: {target}", file=sys.stderr)
         return 1
 
     transcriber: Transcriber
-    if args.backend == "mock":
-        transcriber = MockTranscriber()
-    elif args.backend == "parakeet":
-        transcriber = ParakeetTranscriber(model_name=args.model)
-    else:
-        transcriber = WhisperTranscriber(model_name=args.model)
+    try:
+        if args.backend == "mock":
+            transcriber = MockTranscriber()
+        elif args.backend == "parakeet":
+            transcriber = ParakeetTranscriber(
+                model_name=args.model,
+                offline=args.offline,
+                allow_custom_model=args.allow_custom_model,
+            )
+        else:
+            transcriber = WhisperTranscriber(
+                model_name=args.model,
+                offline=args.offline,
+                allow_custom_model=args.allow_custom_model,
+            )
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
     availability = getattr(transcriber, "is_available", None)
     if callable(availability) and not availability():
@@ -184,7 +269,11 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
         files_to_transcribe = [target]
         output_dir = target.parent / "transcripts"
     else:
-        raw_dir = target / "raw" if (target / "raw").is_dir() else target
+        raw_candidate = target / "raw"
+        if is_symlink_or_reparse(raw_candidate):
+            print(f"Error: Refusing symlinked raw directory: {raw_candidate}", file=sys.stderr)
+            return 1
+        raw_dir = raw_candidate if raw_candidate.is_dir() else target
         files_to_transcribe = scan_audio_directory(raw_dir)
         output_dir = target / "transcripts"
 
@@ -198,28 +287,45 @@ def cmd_transcribe(args: argparse.Namespace) -> int:
         print(f"  -> {f.name}...")
         try:
             res = transcriber.transcribe(f)
+            write_transcript_artifacts(res, output_dir, overwrite=args.overwrite)
         except Exception as e:
             print(f"Error: Transcription failed for {f.name}: {e}", file=sys.stderr)
             return 1
         results.append(res)
-        write_transcript_artifacts(res, output_dir)
 
-    write_transcript_index(results, output_dir / "index.md")
+    try:
+        write_transcript_index(results, output_dir / "index.md", overwrite=args.overwrite)
+    except (OSError, ValueError) as e:
+        print(f"Error: Cannot write transcript index: {e}", file=sys.stderr)
+        return 1
     print(f"Done. Artifacts written to {output_dir}")
     return 0
 
 
 def cmd_recover(args: argparse.Namespace) -> int:
+    try:
+        validate_device_label(args.device_label)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
     audio_files: list[AudioFile] = []
     if args.source:
-        local_src = LocalDirectorySource(args.source)
+        try:
+            local_src = LocalDirectorySource(args.source)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
         audio_files = local_src.discover()
     elif args.device or not args.source:
         mount = find_mounted_device(args.device_label)
         if not mount:
             print(f"Error: Device with label '{args.device_label}' not found.", file=sys.stderr)
             return 1
-        dev_src = DeviceSource(mount, volume_label=args.device_label)
+        try:
+            dev_src = DeviceSource(mount, volume_label=args.device_label)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
         audio_files = dev_src.discover()
 
     if not audio_files:
@@ -227,8 +333,23 @@ def cmd_recover(args: argparse.Namespace) -> int:
         return 1
 
     transcript_text: Optional[str] = None
-    if args.transcript and args.transcript.is_file():
-        transcript_text = args.transcript.read_text(encoding="utf-8")
+    if args.transcript:
+        if is_symlink_or_reparse(args.transcript):
+            print(f"Error: Refusing symlinked transcript file: {args.transcript}", file=sys.stderr)
+            return 1
+        if args.transcript.is_file():
+            try:
+                size = args.transcript.stat().st_size
+                if size > MAX_TRANSCRIPT_BYTES:
+                    print(
+                        f"Error: Transcript file exceeds {MAX_TRANSCRIPT_BYTES} byte limit: {args.transcript}",
+                        file=sys.stderr,
+                    )
+                    return 1
+                transcript_text = args.transcript.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as e:
+                print(f"Error: Cannot read transcript file {args.transcript}: {e}", file=sys.stderr)
+                return 1
 
     plan = analyze_prompt_recovery(
         audio_files=audio_files,
@@ -242,9 +363,23 @@ def cmd_recover(args: argparse.Namespace) -> int:
 
 
 def cmd_distill(args: argparse.Namespace) -> int:
+    if is_symlink_or_reparse(args.transcript):
+        print(f"Error: Refusing symlinked transcript file: {args.transcript}", file=sys.stderr)
+        return 1
     transcript_path = args.transcript.resolve()
     if not transcript_path.is_file():
         print(f"Error: Transcript file not found: {transcript_path}", file=sys.stderr)
+        return 1
+    try:
+        size = transcript_path.stat().st_size
+    except OSError as e:
+        print(f"Error: Cannot stat transcript file {transcript_path}: {e}", file=sys.stderr)
+        return 1
+    if size > MAX_TRANSCRIPT_BYTES:
+        print(
+            f"Error: Transcript file exceeds {MAX_TRANSCRIPT_BYTES} byte limit: {transcript_path}",
+            file=sys.stderr,
+        )
         return 1
 
     text = ""
@@ -294,6 +429,7 @@ def cmd_distill(args: argparse.Namespace) -> int:
             result=result,
             vault_path=args.vault,
             note_slug=args.slug,
+            overwrite=args.overwrite,
         )
     except (OSError, ValueError) as e:
         print(f"Error: Cannot write Obsidian note: {e}", file=sys.stderr)

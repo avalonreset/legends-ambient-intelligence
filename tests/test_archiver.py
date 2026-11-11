@@ -217,6 +217,23 @@ class TestArchiverEdge(unittest.TestCase):
                 archiver.archive([audio], slug="fail")
             self.assertEqual(list(arc_path.glob("**/manifest.json")), [])
 
+    def test_archive_batch_limits(self):
+        with tempfile.TemporaryDirectory() as source_dir, tempfile.TemporaryDirectory() as archive_dir:
+            src_path = Path(source_dir)
+            arc_path = Path(archive_dir)
+            f1 = src_path / "one.wav"
+            f2 = src_path / "two.wav"
+            f1.write_bytes(b"1234567890")
+            f2.write_bytes(b"ABCDEFGHIJ")
+            a1 = AudioFile.from_path(f1)
+            a2 = AudioFile.from_path(f2)
+
+            archiver = Archiver(archive_root=arc_path)
+            with self.assertRaises(ValueError):
+                archiver.archive([a1, a2], slug="cap-files", max_files=1)
+            with self.assertRaises(ValueError):
+                archiver.archive([a1, a2], slug="cap-bytes", max_bytes=15)
+
 
 if __name__ == "__main__":
     unittest.main()

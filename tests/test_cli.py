@@ -310,6 +310,11 @@ class TestCliDoctorStatus(unittest.TestCase):
             self.assertEqual(code, 0)
             self.assertIn("Status", out)
 
+    def test_doctor_mutually_exclusive_json_text(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit):
+                _run(["--archive-root", tmp, "doctor", "--json", "--text"])
+
 
 if __name__ == "__main__":
     unittest.main()

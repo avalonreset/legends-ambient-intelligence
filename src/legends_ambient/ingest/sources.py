@@ -12,6 +12,30 @@ from typing import Optional
 from ..config import SUPPORTED_AUDIO_EXTENSIONS
 
 
+def is_symlink_or_reparse(path: Path) -> bool:
+    """Return True if path is a symbolic link or Windows junction/reparse point."""
+    try:
+        if path.is_symlink():
+            return True
+        is_junc = getattr(path, "is_junction", None)
+        if callable(is_junc) and is_junc():
+            return True
+    except OSError:
+        return True
+    return False
+
+
+def _has_symlink_between(base: Path, target: Path) -> bool:
+    current = target
+    while True:
+        if is_symlink_or_reparse(current):
+            return True
+        if current == base or current.parent == current:
+            break
+        current = current.parent
+    return False
+
+
 @dataclass(frozen=True)
 class AudioFile:
     """Represents a discovered audio recording."""
@@ -26,7 +50,11 @@ class AudioFile:
     @classmethod
     def from_path(cls, path: Path) -> AudioFile:
         """Inspect a file path on disk and compute its hash and metadata."""
+        if is_symlink_or_reparse(path):
+            raise ValueError(f"Refusing symlink or junction audio file: {path}")
         resolved = path.resolve()
+        if resolved.suffix.lower() not in SUPPORTED_AUDIO_EXTENSIONS:
+            raise ValueError(f"Unsupported audio file extension: {resolved.suffix}")
         stat = resolved.stat()
         sha256 = compute_file_sha256(resolved)
         mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
@@ -95,14 +123,23 @@ def scan_audio_directory(
     directory: Path,
     recursive: bool = False,
 ) -> list[Path]:
-    """Scan a directory for supported audio recordings."""
-    if not directory.is_dir():
+    """Scan a directory for supported audio recordings, refusing symlinks and escapes."""
+    if is_symlink_or_reparse(directory) or not directory.is_dir():
         return []
 
+    base_resolved = directory.resolve()
     results: list[Path] = []
     pattern = "**/*" if recursive else "*"
     for item in directory.glob(pattern):
-        if item.is_file() and item.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS:
-            results.append(item.resolve())
+        if _has_symlink_between(directory, item):
+            continue
+        if not item.is_file() or item.suffix.lower() not in SUPPORTED_AUDIO_EXTENSIONS:
+            continue
+        resolved = item.resolve()
+        if not resolved.is_relative_to(base_resolved):
+            continue
+        if resolved.suffix.lower() not in SUPPORTED_AUDIO_EXTENSIONS:
+            continue
+        results.append(resolved)
 
     return sorted(results, key=lambda p: (p.name, str(p)))

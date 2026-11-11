@@ -10,6 +10,7 @@ from typing import Optional
 
 from .config import get_default_archive_root, get_default_device_label
 from .ingest.device_source import find_mounted_device
+from .ingest.sources import is_symlink_or_reparse
 
 
 @dataclass
@@ -22,9 +23,15 @@ class CheckResult:
 class Doctor:
     """Performs offline system and environment readiness checks."""
 
-    def __init__(self, archive_root: Optional[Path] = None, device_label: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        archive_root: Optional[Path] = None,
+        device_label: Optional[str] = None,
+        offline: bool = False,
+    ) -> None:
         self.archive_root = archive_root or get_default_archive_root()
         self.device_label = device_label or get_default_device_label()
+        self.offline = offline
 
     def run_all(self) -> list[CheckResult]:
         results: list[CheckResult] = []
@@ -38,6 +45,8 @@ class Doctor:
 
         # 2. Archive root directory
         try:
+            if is_symlink_or_reparse(self.archive_root):
+                raise ValueError(f"Refusing symlinked archive root: {self.archive_root}")
             self.archive_root.mkdir(parents=True, exist_ok=True)
             results.append(CheckResult("archive_dir", "OK", f"Writable: {self.archive_root}"))
         except Exception as e:

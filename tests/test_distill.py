@@ -314,6 +314,36 @@ class TestObsidianEdge(unittest.TestCase):
                     candidate=candidate, result=self._result(), vault_path=blocker
                 )
 
+    def test_slug_windows_drive_and_reserved_names_sanitized(self):
+        with tempfile.TemporaryDirectory() as tmp_vault:
+            vault = Path(tmp_vault)
+            candidate = extract_distilled_candidates("We decided to ship today quickly.")
+            _, written_drive = generate_obsidian_note(
+                candidate=candidate,
+                result=self._result(),
+                vault_path=vault,
+                note_slug="C:escaped",
+            )
+            self.assertEqual(written_drive.parent.resolve(), vault.resolve())
+            self.assertNotIn(":", written_drive.name)
+
+            _, written_con = generate_obsidian_note(
+                candidate=candidate,
+                result=self._result(),
+                vault_path=vault,
+                note_slug="CON",
+            )
+            self.assertEqual(written_con.name, "note-CON.md")
+
+            with self.assertRaises(FileExistsError):
+                generate_obsidian_note(
+                    candidate=candidate,
+                    result=self._result(),
+                    vault_path=vault,
+                    note_slug="CON",
+                    overwrite=False,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
