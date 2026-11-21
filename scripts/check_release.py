@@ -33,6 +33,13 @@ REQUIRED_FILES = [
     "assets/preview.png",
     "assets/social-preview.png",
     "assets/manifest.json",
+    "assets/cards/r1/slot-1-agent-handoff.svg",
+    "assets/cards/r1/slot-2-three-pillars.svg",
+    "assets/cards/r1/slot-3-plain-english-chains.svg",
+    "assets/cards/r1/slot-4-ambient-architecture.svg",
+    "assets/cards/r1/slot-5-adhoc-vs-ambient.svg",
+    "assets/cards/r1/slot-7-message-avalon-reset.svg",
+    "assets/cards/r1/slot-collection-star-shrine.svg",
 ]
 
 SKIP_DIRS = {
@@ -48,7 +55,7 @@ SKIP_DIRS = {
     ".ruff_cache",
 }
 
-TEXT_EXTS = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cff", ".txt", ".in"}
+TEXT_EXTS = {".py", ".md", ".toml", ".json", ".yml", ".yaml", ".cff", ".txt", ".in", ".svg"}
 
 FORBIDDEN_EXTS = {".ps1", ".bat", ".cmd", ".vbs", ".ahk", ".pem", ".key", ".p12", ".pfx"}
 

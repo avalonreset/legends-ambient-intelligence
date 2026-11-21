@@ -4,6 +4,16 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.5] - 2026-11-21
+
+### Added
+- Added `scripts/render_cards.py` and the 7-card outlined Legends Font `r1` SVG suite under `assets/cards/r1/` (`slot-1-agent-handoff.svg`, `slot-2-three-pillars.svg`, `slot-3-plain-english-chains.svg`, `slot-4-ambient-architecture.svg`, `slot-5-adhoc-vs-ambient.svg`, `slot-7-message-avalon-reset.svg`, and `slot-collection-star-shrine.svg`).
+- Expanded `scripts/check_release.py` and `MANIFEST.in` to validate and package the `assets/cards/r1/*.svg` card suite.
+
+### Changed
+- Rewrote `README.md` to the evergreen CTO Legends visual specification with single-command `--apply` agent handoff, plain english operator prompt chains, two-chamber SHA-256 intake and offline ASR distillation architecture, cloud voice-memo comparison matrix, and collapsible `<details>` reference drawers.
+- Removed duplicate `assets/collection-star-shrine.svg` in favor of `assets/cards/r1/slot-collection-star-shrine.svg`.
+
 ## [0.1.4] - 2026-11-10
 
 ### Added
