@@ -1,6 +1,6 @@
 # Legends Ambient Intelligence Agent Recipe
 
-Deterministic operator procedure for `legends-ambient-intelligence` (`v0.1.5`). Loaded by `cto-legends handoff legends-ambient-intelligence`. Do not register a separate per-module skill.
+Deterministic operator procedure for `legends-ambient-intelligence` (`v0.1.6`). Loaded by `cto-legends handoff legends-ambient-intelligence`. Do not register a separate per-module skill.
 
 ## 1. Readiness & Diagnostics
 

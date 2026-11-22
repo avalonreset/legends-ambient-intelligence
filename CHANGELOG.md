@@ -4,6 +4,10 @@ All notable changes to `legends-ambient-intelligence` will be documented in this
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [0.1.6] - 2026-11-22
+
+- Sync vendored `cto-legends` router skill pin (`69ddc4f68faa`), enforce LF line endings via `.gitattributes`, and standardize release artifact checksums.
+
 ## [0.1.5] - 2026-11-21
 
 ### Added
