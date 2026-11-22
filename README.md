@@ -6,7 +6,7 @@
 [![asr](https://img.shields.io/badge/asr-faster--whisper%20%2B%20parakeet-000000?style=flat-square&labelColor=000000&color=ff0000)](pyproject.toml)
 [![license](https://img.shields.io/github/license/avalonreset/legends-ambient-intelligence?label=license&style=flat-square&labelColor=000000&color=666666)](LICENSE)
 
-**Offline voice-memo and field-recording transcription CLI (`legends-ambient` and `lai`) for coding agents: archive USB voice recorders and local audio folders with non-destructive SHA-256 deduplication, run 100% offline `faster-whisper` or NVIDIA Parakeet ASR, stitch 15-minute recorder rollovers, and distill timestamped Markdown notes and action items into `legends-empire` and Obsidian.**
+**Offline voice-memo and field-recording transcription CLI (`legends-ambient` and `lai`) for coding agents: archive USB voice recorders and local audio folders with non-destructive SHA-256 deduplication, run 100% offline `faster-whisper` or NVIDIA Parakeet ASR, stitch 15-minute recorder rollovers, and distill timestamped Markdown notes and action items into your `legends-empire` Markdown vault.**
 
 ![Agent Handoff](assets/cards/r1/slot-1-agent-handoff.svg)
 
@@ -24,7 +24,7 @@ Most voice memo and meeting transcription tools force operators into brittle com
 2. **Duplicate imports or destructive USB dictaphone syncs:** Plugging in a portable USB voice recorder (such as a KT5000 dictaphone) or pointing a script at a local folder either re-imports the same audio files every week or deletes original recordings off the device before verifying that every byte landed safely on disk.
 3. **15-minute hardware recorder split boundaries:** Hardware voice recorders routinely split continuous monologues into fixed 15-minute WAV or MP3 files. Naive transcription pipelines treat each file in isolation, slicing spoken prompts and decisions in half right at the rollover boundary.
 
-`legends-ambient-intelligence` (`legends-ambient` / `lai`) solves the passive offline audio pipeline. While [`legends-hyperyap`](https://github.com/avalonreset/legends-hyperyap) handles live push-to-talk dictation into your active cursor, `legends-ambient-intelligence` ingests saved recordings from USB dictaphones or local folders, deduplicates globally by SHA-256 across all historical archive manifests, runs local `faster-whisper` or NVIDIA NeMo Parakeet ASR 100% offline, recovers thoughts split across 15-minute file boundaries, and distills structured Markdown notes with interactive action-item checkboxes for [`legends-empire`](https://github.com/avalonreset/legends-empire) and Obsidian.
+`legends-ambient-intelligence` (`legends-ambient` / `lai`) solves the passive offline audio pipeline. While [`legends-hyperyap`](https://github.com/avalonreset/legends-hyperyap) handles live push-to-talk dictation into your active cursor, `legends-ambient-intelligence` ingests saved recordings from USB dictaphones or local folders, deduplicates globally by SHA-256 across all historical archive manifests, runs local `faster-whisper` or NVIDIA NeMo Parakeet ASR 100% offline, recovers thoughts split across 15-minute file boundaries, and distills structured Markdown notes with interactive action-item checkboxes for your [`legends-empire`](https://github.com/avalonreset/legends-empire) Markdown vault.
 
 ## Ask in plain english
 
@@ -52,7 +52,7 @@ Every `lai ingest` call treats your source media as read-only evidence:
 | **Deduplicated Audio Intake** | `ingest` | Dry-run preview (`--what-if`) and non-destructive batch archiving from local folders (`--source`) or USB recorders (`--device --eject`) with SHA-256 manifest verification. |
 | **Offline Whisper & Parakeet ASR** | `transcribe` | Local transcription (`--backend whisper` via `faster-whisper` or Whisper CLI, `--backend parakeet` via NVIDIA NeMo, or `--backend mock`) emitting 5 deterministic sidecars (`.txt`, `.json`, `.srt`, `.vtt`, `.words.json`) plus `transcripts/index.md`. |
 | **15-Minute Rollover Stitching** | `recover` | Inspects consecutive recordings for boundary timestamp gaps (`<= 2.0s`) and opening continuation cues (`and`, `but`, `because`, `then`, `so`, `or`) to stitch split thoughts across 15-minute recorder rollovers. |
-| **Vault Digest & Action Extraction** | `distill` | Extracts spoken action items (`- [ ]`), key decisions, and recurring themes into YAML-frontmatter Markdown notes ready for [`legends-empire`](https://github.com/avalonreset/legends-empire) and Obsidian (`--vault`). |
+| **Vault Digest & Action Extraction** | `distill` | Extracts spoken action items (`- [ ]`), key decisions, and recurring themes into YAML-frontmatter Markdown notes ready for your [`legends-empire`](https://github.com/avalonreset/legends-empire) Markdown vault (`--vault`). |
 
 ## Cloud voice memo apps vs `legends-ambient-intelligence`
 
@@ -76,9 +76,9 @@ legends-ambient ingest --device --eject --slug field-notes
 # 4. Transcribe an archived session 100% offline into TXT, JSON, SRT, VTT, and words.json
 legends-ambient transcribe ~/.legends-ambient/archive/2026/11/21/field-notes --backend whisper --offline
 
-# 5. Check for 15-minute recorder rollover splits and distill into an Obsidian / legends-empire vault
+# 5. Check for 15-minute recorder rollover splits and distill into a legends-empire Markdown vault
 legends-ambient recover --source ./my-recordings --latest-tail 15 --predecessor-tail 5
-legends-ambient distill path/to/transcript.json --vault ~/Documents/ObsidianVault/Notes --slug field-notes
+legends-ambient distill path/to/transcript.json --vault ~/Documents/EmpireVault/Notes --slug field-notes
 ```
 
 ## Reference
@@ -126,10 +126,10 @@ Voice Input
                                                |
                                                v (SHA-256 dedup + offline Whisper + distill)
 Knowledge Sink
-  +-- Markdown Vault Storage --------------> legends-empire & Obsidian
+  +-- Markdown Vault Storage --------------> legends-empire Markdown Vault
 ```
 
-- `src/legends_ambient/`: Console entrypoints (`legends-ambient`, `lai`), SHA-256 deduplicating archiver (`archiver.py`), local and Win32 USB device ingestion (`ingest/`), pluggable Whisper/Parakeet/mock transcription (`transcribe/`), 15-minute rollover recovery and Obsidian vault distillation (`distill/`), and offline readiness diagnostics (`doctor.py`).
+- `src/legends_ambient/`: Console entrypoints (`legends-ambient`, `lai`), SHA-256 deduplicating archiver (`archiver.py`), local and Win32 USB device ingestion (`ingest/`), pluggable Whisper/Parakeet/mock transcription (`transcribe/`), 15-minute rollover recovery and Markdown vault distillation (`distill/`), and offline readiness diagnostics (`doctor.py`).
 - `docs/`: [Agent recipe](docs/AGENT-RECIPE.md) and [search strategy](docs/SEARCH-STRATEGY.md).
 - `skills/cto-legends/SKILL.md`: Pinned copy of the central [`cto-legends`](https://github.com/avalonreset/cto-legends) router skill.
 
@@ -155,5 +155,5 @@ MIT License. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOT
 
 **Specification & benchmarks on cto-legends.com:**
 - **Module specification & architecture matrix:** [cto-legends.com/modules/legends-ambient-intelligence](https://cto-legends.com/modules/legends-ambient-intelligence)
-- **Related engineering dispatches:** [Obsidian Second Brain: Markdown Knowledge Base Guide](https://cto-legends.com/blog?post=obsidian-second-brain-markdown-knowledge-base) · [How to Build AI Agents: Production CLI & MCP Routing](https://cto-legends.com/blog?post=how-to-build-ai-agents-cli-mcp-routing)
+- **Related engineering dispatches:** [AI Agent Governance: Markdown Knowledge Base & Vault Architecture](https://cto-legends.com/blog?post=ai-agent-governance) · [How to Build AI Agents: Production CLI & MCP Routing](https://cto-legends.com/blog?post=how-to-build-ai-agents-cli-mcp-routing)
 - **Ecosystem hub:** [cto-legends.com/home](https://cto-legends.com/home)
