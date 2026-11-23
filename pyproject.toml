@@ -38,7 +38,8 @@ legends-ambient = "legends_ambient.cli:main"
 lai = "legends_ambient.cli:main"
 
 [project.urls]
-Homepage = "https://cto-legends.com"
+Homepage = "https://cto-legends.com/modules/legends-ambient-intelligence"
+Documentation = "https://cto-legends.com/modules/legends-ambient-intelligence"
 Repository = "https://github.com/avalonreset/legends-ambient-intelligence"
 Issues = "https://github.com/avalonreset/legends-ambient-intelligence/issues"
 
